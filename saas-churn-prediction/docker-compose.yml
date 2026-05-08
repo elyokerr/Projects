@@ -1,0 +1,45 @@
+version: "3.9"
+
+services:
+  # ─── PostgreSQL Database ────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: churn-postgres
+    environment:
+      POSTGRES_DB: saas_churn
+      POSTGRES_USER: churn_user
+      POSTGRES_PASSWORD: churn_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U churn_user -d saas_churn"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─── API Service (Phase 3) ─────────────────────────────────
+  # api:
+  #   build: ./api
+  #   container_name: churn-api
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     DB_HOST: postgres
+  #     USE_POSTGRES: "true"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+
+  # ─── Dashboard (Phase 4) ───────────────────────────────────
+  # dashboard:
+  #   build: ./dashboard
+  #   container_name: churn-dashboard
+  #   ports:
+  #     - "8501:8501"
+  #   depends_on:
+  #     - api
+
+volumes:
+  postgres_data:

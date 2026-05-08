@@ -1,0 +1,41 @@
+# ─── Python ───────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# ─── Data (raw data not committed — download instructions in README) ─
+data/raw/
+data/processed/
+data/churn.db
+*.csv
+*.parquet
+
+# ─── Models ───────────────────────────────────────────────────
+models/*.joblib
+models/*.pkl
+
+# ─── MLflow ───────────────────────────────────────────────────
+mlruns/
+
+# ─── Environment ─────────────────────────────────────────────
+.env
+venv/
+.venv/
+env/
+
+# ─── IDE ──────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# ─── Docker ───────────────────────────────────────────────────
+postgres_data/
+
+# ─── Jupyter ──────────────────────────────────────────────────
+.ipynb_checkpoints/
