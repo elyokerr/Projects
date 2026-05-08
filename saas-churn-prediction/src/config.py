@@ -7,18 +7,18 @@ import os
 from pathlib import Path
 
 # ─── Project Paths ───────────────────────────────────────────────
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+# config.py is at src/config.py, so parent.parent = project root
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 RAW_DATA_DIR = DATA_DIR / "raw"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
 MODELS_DIR = PROJECT_ROOT / "models"
-DATABASE_DIR = PROJECT_ROOT / "database"
+SQL_DIR = PROJECT_ROOT / "src" / "sql"
 
 # Raw data file
 RAW_CSV_PATH = RAW_DATA_DIR / "telco_churn_raw.csv"
 
 # ─── Database Configuration ──────────────────────────────────────
-# Uses environment variables with sensible defaults for local dev
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "localhost"),
     "port": int(os.getenv("DB_PORT", 5432)),

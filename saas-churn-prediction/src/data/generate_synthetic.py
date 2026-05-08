@@ -9,9 +9,6 @@ Tables created:
     - usage_events     : weekly login counts, feature usage, session duration
     - support_tickets  : customer support interactions with severity/resolution
 
-This demonstrates the ability to think about data design and feature relevance,
-a key skill hiring managers look for in data science candidates.
-
 Usage:
     python -m src.data.generate_synthetic
 """
@@ -25,8 +22,8 @@ from sqlalchemy import text
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from src.utils.config import RANDOM_STATE
-from src.utils.db import get_engine
+from src.config import RANDOM_STATE
+from src.db import get_engine
 
 
 np.random.seed(RANDOM_STATE)
@@ -57,8 +54,6 @@ def generate_usage_events(df: pd.DataFrame) -> pd.DataFrame:
     - Lower feature adoption rate
     - Shorter session durations
     - Declining usage trends
-
-    Non-churned customers have higher but noisier engagement.
     """
     records = []
 
@@ -67,22 +62,19 @@ def generate_usage_events(df: pd.DataFrame) -> pd.DataFrame:
         tier = row["service_tier"]
         tenure = row["account_age_months"]
 
-        # Base engagement levels (churners are lower on average)
         if is_churner:
             base_logins = np.random.uniform(1, 8)
             base_session_min = np.random.uniform(3, 15)
             base_feature_pct = np.random.uniform(0.05, 0.35)
-            trend = np.random.uniform(-0.3, -0.02)   # declining
+            trend = np.random.uniform(-0.3, -0.02)
         else:
             base_logins = np.random.uniform(4, 20)
             base_session_min = np.random.uniform(8, 45)
             base_feature_pct = np.random.uniform(0.20, 0.80)
-            trend = np.random.uniform(-0.05, 0.15)    # stable or growing
+            trend = np.random.uniform(-0.05, 0.15)
 
-        # Premium tier users tend to be more engaged
         tier_boost = {"premium": 1.3, "basic": 1.0, "free": 0.6}.get(tier, 1.0)
 
-        # Generate 4 weeks of data (most recent month)
         for week in range(1, 5):
             week_factor = 1 + trend * (week / 4)
             noise = np.random.normal(1.0, 0.2)
@@ -129,14 +121,12 @@ def generate_support_tickets(df: pd.DataFrame) -> pd.DataFrame:
         is_churner = row["churn"] == 1
         tenure = row["account_age_months"]
 
-        # Churners file more tickets on average
         if is_churner:
             n_tickets = np.random.choice(range(0, 8), p=[0.10, 0.15, 0.25, 0.20, 0.15, 0.08, 0.05, 0.02])
         else:
             n_tickets = np.random.choice(range(0, 8), p=[0.25, 0.30, 0.20, 0.12, 0.07, 0.03, 0.02, 0.01])
 
         for t in range(n_tickets):
-            # Churners get higher severity distribution
             if is_churner:
                 severity = np.random.choice(severity_levels, p=[0.15, 0.30, 0.35, 0.20])
             else:
@@ -144,13 +134,11 @@ def generate_support_tickets(df: pd.DataFrame) -> pd.DataFrame:
 
             category = np.random.choice(categories)
 
-            # Resolution: churners have more unresolved tickets
             if is_churner:
                 resolved = np.random.choice([0, 1], p=[0.35, 0.65])
             else:
                 resolved = np.random.choice([0, 1], p=[0.10, 0.90])
 
-            # Resolution time (hours) — higher for churners
             if resolved:
                 base_hours = {"low": 4, "medium": 12, "high": 24, "critical": 48}[severity]
                 resolution_hours = max(1, int(base_hours * np.random.uniform(0.5, 2.5)))
@@ -159,7 +147,6 @@ def generate_support_tickets(df: pd.DataFrame) -> pd.DataFrame:
             else:
                 resolution_hours = None
 
-            # Days ago the ticket was created (within last 90 days)
             days_ago = np.random.randint(1, min(90, max(30, tenure * 30)))
 
             records.append({
@@ -201,7 +188,6 @@ def run_synthetic_generation():
     support_tickets.to_sql("support_tickets", engine, if_exists="replace", index=False)
     print(f"  ✓ support_tickets table: {len(support_tickets):,} rows")
 
-    # Quick stats
     print("\n─── Engagement Summary ───")
     churners = df[df["churn"] == 1]["customer_id"]
     active = df[df["churn"] == 0]["customer_id"]

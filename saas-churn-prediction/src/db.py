@@ -8,14 +8,13 @@ Supports both PostgreSQL (Docker) and SQLite (local dev) via config toggle.
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
-from src.utils.config import ACTIVE_DB_URL, USE_POSTGRES
+from src.config import ACTIVE_DB_URL, USE_POSTGRES
 
 
 def get_engine():
     """Create and return a SQLAlchemy engine based on active config."""
     connect_args = {}
     if not USE_POSTGRES:
-        # SQLite needs this for multi-threaded access
         connect_args = {"check_same_thread": False}
 
     engine = create_engine(

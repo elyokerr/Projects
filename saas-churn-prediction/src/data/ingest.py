@@ -23,12 +23,11 @@ from sqlalchemy import text
 # Allow running as module from project root
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from src.utils.config import RAW_CSV_PATH, RANDOM_STATE
-from src.utils.db import get_engine
+from src.config import RAW_CSV_PATH, RANDOM_STATE
+from src.db import get_engine
 
 
 # ─── Column Mapping ──────────────────────────────────────────────
-# Reframe telco terminology into SaaS product terminology
 SAAS_COLUMN_MAP = {
     "customerID": "customer_id",
     "gender": "gender",
@@ -38,7 +37,7 @@ SAAS_COLUMN_MAP = {
     "tenure": "account_age_months",
     "PhoneService": "has_base_product",
     "MultipleLines": "has_multi_seat",
-    "InternetService": "service_tier",       # DSL=Basic, Fiber=Premium, No=Free
+    "InternetService": "service_tier",
     "OnlineSecurity": "has_security_module",
     "OnlineBackup": "has_backup_module",
     "DeviceProtection": "has_protection_module",
@@ -53,7 +52,6 @@ SAAS_COLUMN_MAP = {
     "Churn": "churn",
 }
 
-# ─── Cleaning & Transformation ───────────────────────────────────
 
 def load_raw_data(path: Path = RAW_CSV_PATH) -> pd.DataFrame:
     """Load the raw CSV and perform initial validation."""
@@ -66,13 +64,11 @@ def clean_and_reshape(df: pd.DataFrame) -> pd.DataFrame:
     """Clean data, rename columns to SaaS context, fix types."""
     df = df.rename(columns=SAAS_COLUMN_MAP)
 
-    # Fix TotalCharges: blank strings → NaN, then fill with monthly * tenure
     df["total_revenue"] = pd.to_numeric(df["total_revenue"], errors="coerce")
     mask = df["total_revenue"].isna()
     df.loc[mask, "total_revenue"] = df.loc[mask, "monthly_revenue"] * df.loc[mask, "account_age_months"]
     print(f"  Fixed {mask.sum()} blank total_revenue values")
 
-    # Convert Yes/No to boolean integers
     bool_columns = [
         "has_partner", "has_dependents", "has_base_product",
         "paperless_billing", "churn",
@@ -80,11 +76,9 @@ def clean_and_reshape(df: pd.DataFrame) -> pd.DataFrame:
     for col in bool_columns:
         df[col] = (df[col] == "Yes").astype(int)
 
-    # Map service tier: DSL → Basic, Fiber optic → Premium, No → Free
     tier_map = {"DSL": "basic", "Fiber optic": "premium", "No": "free"}
     df["service_tier"] = df["service_tier"].map(tier_map)
 
-    # Module columns: Yes → 1, everything else → 0
     module_columns = [
         "has_multi_seat", "has_security_module", "has_backup_module",
         "has_protection_module", "has_support_addon",
@@ -93,7 +87,6 @@ def clean_and_reshape(df: pd.DataFrame) -> pd.DataFrame:
     for col in module_columns:
         df[col] = (df[col] == "Yes").astype(int)
 
-    # Clean contract type
     contract_map = {
         "Month-to-month": "monthly",
         "One year": "annual",
@@ -101,7 +94,6 @@ def clean_and_reshape(df: pd.DataFrame) -> pd.DataFrame:
     }
     df["contract_type"] = df["contract_type"].map(contract_map)
 
-    # Clean payment method
     payment_map = {
         "Electronic check": "electronic_check",
         "Mailed check": "mailed_check",
@@ -110,7 +102,6 @@ def clean_and_reshape(df: pd.DataFrame) -> pd.DataFrame:
     }
     df["payment_method"] = df["payment_method"].map(payment_map)
 
-    # Generate a signup date (working backwards from a reference date)
     np.random.seed(RANDOM_STATE)
     reference_date = pd.Timestamp("2024-12-01")
     df["signup_date"] = df["account_age_months"].apply(
@@ -121,15 +112,12 @@ def clean_and_reshape(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# ─── Database Writers ─────────────────────────────────────────────
-
 def write_customers_table(df: pd.DataFrame, engine) -> None:
     """Write the customers dimension table."""
     customers = df[[
         "customer_id", "gender", "is_senior", "has_partner",
         "has_dependents", "signup_date", "account_age_months",
     ]].copy()
-
     customers.to_sql("customers", engine, if_exists="replace", index=False)
     print(f"  ✓ customers table: {len(customers):,} rows")
 
@@ -141,7 +129,6 @@ def write_subscriptions_table(df: pd.DataFrame, engine) -> None:
         "paperless_billing", "payment_method",
         "monthly_revenue", "total_revenue", "churn",
     ]].copy()
-
     subscriptions.to_sql("subscriptions", engine, if_exists="replace", index=False)
     print(f"  ✓ subscriptions table: {len(subscriptions):,} rows")
 
@@ -154,16 +141,11 @@ def write_product_usage_table(df: pd.DataFrame, engine) -> None:
         "has_protection_module", "has_support_addon",
         "has_analytics_module", "has_reporting_module",
     ]].copy()
-
-    # Derived: total modules enabled (useful feature later)
     module_cols = [c for c in product_usage.columns if c.startswith("has_")]
     product_usage["modules_enabled"] = product_usage[module_cols].sum(axis=1)
-
     product_usage.to_sql("product_usage", engine, if_exists="replace", index=False)
     print(f"  ✓ product_usage table: {len(product_usage):,} rows")
 
-
-# ─── Main Pipeline ────────────────────────────────────────────────
 
 def run_ingestion():
     """Execute the full ingestion pipeline."""
@@ -185,7 +167,6 @@ def run_ingestion():
     write_subscriptions_table(df, engine)
     write_product_usage_table(df, engine)
 
-    # Quick validation
     with engine.connect() as conn:
         for table in ["customers", "subscriptions", "product_usage"]:
             count = conn.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar()

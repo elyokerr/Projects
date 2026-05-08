@@ -21,13 +21,13 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from src.utils.config import DATABASE_DIR, PROCESSED_DATA_DIR
-from src.utils.db import get_engine
+from src.config import SQL_DIR, PROCESSED_DATA_DIR
+from src.db import get_engine
 
 
 def execute_sql_features(engine) -> pd.DataFrame:
     """Run the SQL feature engineering query and return as DataFrame."""
-    sql_path = DATABASE_DIR / "features.sql"
+    sql_path = SQL_DIR / "features.sql"
     with open(sql_path, "r") as f:
         query = f.read()
 
@@ -39,14 +39,14 @@ def execute_sql_features(engine) -> pd.DataFrame:
 def add_python_features(df: pd.DataFrame) -> pd.DataFrame:
     """Add features that are easier to compute in Python."""
 
-    # Revenue per module — how much value are they getting per feature?
+    # Revenue per module
     df["revenue_per_module"] = np.where(
         df["modules_enabled"] > 0,
         (df["monthly_revenue"] / df["modules_enabled"]).round(2),
         df["monthly_revenue"],
     )
 
-    # Tenure-revenue ratio — are they a high-value long-term customer?
+    # Tenure-revenue ratio
     df["lifetime_value_indicator"] = (
         df["total_revenue"] / (df["account_age_months"] + 1)
     ).round(2)
@@ -64,7 +64,7 @@ def add_python_features(df: pd.DataFrame) -> pd.DataFrame:
     # Has the customer ever contacted support?
     df["has_contacted_support"] = (df["total_tickets"] > 0).astype(int)
 
-    # Ticket-to-tenure ratio (more tickets relative to time = frustrated)
+    # Ticket-to-tenure ratio
     df["tickets_per_month"] = np.where(
         df["account_age_months"] > 0,
         (df["total_tickets"] / df["account_age_months"]).round(3),
@@ -73,7 +73,6 @@ def add_python_features(df: pd.DataFrame) -> pd.DataFrame:
 
     # Account segment one-hot encoding
     segment_dummies = pd.get_dummies(df["account_segment"], prefix="segment")
-    # Ensure consistent column types
     for col in segment_dummies.columns:
         segment_dummies[col] = segment_dummies[col].astype(int)
     df = pd.concat([df, segment_dummies], axis=1)
@@ -87,7 +86,6 @@ def validate_features(df: pd.DataFrame) -> None:
     """Run sanity checks on the feature set."""
     print("\n─── Feature Validation ───")
 
-    # Check for nulls
     null_counts = df.isnull().sum()
     nulls = null_counts[null_counts > 0]
     if len(nulls) == 0:
@@ -95,11 +93,8 @@ def validate_features(df: pd.DataFrame) -> None:
     else:
         print(f"  ⚠ Nulls found:\n{nulls}")
 
-    # Check target balance
     churn_rate = df["churn"].mean()
     print(f"  ✓ Churn rate: {churn_rate:.1%} ({df['churn'].sum():,} / {len(df):,})")
-
-    # Check feature ranges make sense
     print(f"  ✓ Monthly revenue range: £{df['monthly_revenue'].min():.2f} – £{df['monthly_revenue'].max():.2f}")
     print(f"  ✓ Account age range: {df['account_age_months'].min()} – {df['account_age_months'].max()} months")
     print(f"  ✓ Avg weekly logins: {df['avg_weekly_logins'].mean():.1f} (mean)")
@@ -125,11 +120,9 @@ def run_feature_engineering():
     validate_features(df)
 
     print("\n[5/5] Saving outputs...")
-    # Save to database
     df.to_sql("feature_store", engine, if_exists="replace", index=False)
     print(f"  ✓ feature_store table written ({len(df):,} rows)")
 
-    # Save to CSV for model training
     PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
     csv_path = PROCESSED_DATA_DIR / "features.csv"
     df.to_csv(csv_path, index=False)
