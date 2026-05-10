@@ -451,20 +451,17 @@ print("  • Swagger docs:  http://localhost:8000/docs")
 print("  • ReDoc:          http://localhost:8000/redoc")
 print("  • Health check:   http://localhost:8000/health")
 
-# ── Test with real HTTP requests ──
-import httpx
+# Http test cell
+from fastapi.testclient import TestClient
+from api.main import app
 
-base_url = "http://localhost:8000"
+client = TestClient(app)
 
-# Health check
-resp = httpx.get(f"{base_url}/health")
-print(f"Health check: {resp.status_code} → {resp.json()['status']}")
+resp = client.get("/health")
+print(resp.status_code, resp.json())
 
-# Single prediction
-resp = httpx.post(f"{base_url}/predict", json=loyal_customer)
-print(f"Prediction:   {resp.status_code} → risk={resp.json()['risk_level']}, prob={resp.json()['churn_probability']:.1%}")
-
-print("\n✓ Real HTTP server is working")
+resp = client.post("/predict", json=loyal_customer)
+print(resp.status_code, resp.json())
 
 """---
 ## Summary — Phase 3 Complete
