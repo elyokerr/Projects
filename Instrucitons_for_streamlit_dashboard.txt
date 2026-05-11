@@ -1,0 +1,13 @@
+cd C:\Users\markd\OneDrive\Desktop\Github\Projects\saas-churn-prediction
+
+pip install -r dashboard/requirements.txt
+
+streamlit run dashboard/app.py
+
+http://localhost:8501
+
+To clear cache:
+streamlit cache clear
+
+Then rerun:
+streamlit run dashboard/app.py
