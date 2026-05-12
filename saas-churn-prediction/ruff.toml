@@ -1,0 +1,20 @@
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+fix = true
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort (import sorting)
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by line-length above)
+    "E402",  # module-level import not at top (needed for Colab path setup)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src", "api"]

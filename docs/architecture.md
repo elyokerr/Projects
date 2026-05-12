@@ -1,155 +1,112 @@
 # Technical Architecture
 
-## System Overview
+## Overview
 
-The SaaS Churn Prediction Platform is a multi-layer system that processes raw customer data through a feature engineering pipeline, trains and evaluates ML models, serves predictions through a REST API, and presents insights through an interactive dashboard.
+The SaaS Churn Prediction Platform is built as a modular, layered system where each component can run independently or as part of the full stack via Docker Compose. The architecture follows patterns common in production ML systems: a data pipeline feeds engineered features into a trained model, which is served via a REST API and visualised through an interactive dashboard.
+
+---
+
+## System Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        DATA LAYER                                   │
-│                                                                     │
-│  Kaggle CSV ──→ ingest.py ──→ SQLite ──→ synthetic.py               │
-│                                  │                                  │
-│                                  ▼                                  │
-│                          features.sql (CTEs, window functions)      │
-│                                  │                                  │
-│                                  ▼                                  │
-│                          features.csv (45 features)                 │
-└─────────────────────────┬───────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                      MODELLING LAYER                                │
-│                                                                     │
-│  train.py ──→ 3 models compared (MLflow tracking)                   │
-│      │                                                              │
-│      ├──→ evaluate.py ──→ SHAP, ROC, confusion matrix               │
-│      │                                                              │
-│      └──→ predict.py ──→ scored_customers.csv (batch scoring)       │
-│                                                                     │
-│  Artifacts: best_model.joblib, scaler.joblib, model_metadata.joblib │
-└──────────┬──────────────────────────┬───────────────────────────────┘
-           │                          │
-           ▼                          ▼
-┌────────────────────────┐  ┌────────────────────────────────────────┐
-│     API LAYER          │  │         DASHBOARD LAYER                │
-│                        │  │                                        │
-│  FastAPI (api/main.py) │  │  Streamlit (dashboard/app.py)          │
-│                        │  │                                        │
-│  GET  /health          │  │  KPI cards, risk charts                │
-│  POST /predict         │  │  Revenue at risk analysis              │
-│  POST /predict/batch   │  │  Customer drilldown                    │
-│                        │  │  High-risk table + CSV export          │
-│  Pydantic validation   │  │  Sidebar filters                      │
-│  Swagger docs (/docs)  │  │  Plotly interactive charts             │
-│  18 pytest tests       │  │                                        │
-└────────────────────────┘  └────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                    GitHub Actions CI/CD                           │
+│            Lint (Ruff) → Test (pytest) → Verify artifacts        │
+└──────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────┐
+│                     docker compose up                             │
+│                                                                   │
+│  ┌──────────────┐   ┌───────────────┐   ┌───────────────────┐   │
+│  │  PostgreSQL   │   │   FastAPI     │   │   Streamlit       │   │
+│  │  Database     │◄──│   API         │   │   Dashboard       │   │
+│  │  port 5432    │   │  port 8000    │   │   port 8501       │   │
+│  │               │   │               │   │                   │   │
+│  │  - customers  │   │  /health      │   │  KPI cards        │   │
+│  │  - features   │   │  /predict     │   │  Risk charts      │   │
+│  │  - scores     │   │  /predict/    │   │  Drilldown        │   │
+│  │               │   │    batch      │   │  CSV export       │   │
+│  └──────────────┘   └───────────────┘   └───────────────────┘   │
+│                                                                   │
+│  Health checks: PostgreSQL → API → Dashboard (ordered startup)   │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## File Responsibilities
+## Architecture Layers
 
-| File | Layer | Purpose |
-|---|---|---|
-| `src/config.py` | Config | Centralised paths, database URL, model parameters |
-| `src/db.py` | Data | SQLAlchemy engine creation, SQLite/PostgreSQL toggle |
-| `src/data/ingest.py` | Data | Load Kaggle CSV, reshape for SaaS context, insert into database |
-| `src/data/synthetic.py` | Data | Generate realistic engagement metrics (logins, sessions, support) |
-| `src/data/feature_engineering.py` | Data | Execute SQL feature queries, export to CSV |
-| `src/sql/init.sql` | Data | Database schema definition |
-| `src/sql/features.sql` | Data | Feature engineering queries (CTEs, window functions, JOINs) |
-| `src/models/train.py` | Model | Training pipeline: 3 models, MLflow tracking, threshold tuning |
-| `src/models/evaluate.py` | Model | SHAP analysis, confusion matrix, ROC/PR curves |
-| `src/models/predict.py` | Model | Batch scoring with risk levels and revenue at risk |
-| `api/main.py` | API | FastAPI application with 3 endpoints |
-| `api/schemas.py` | API | Pydantic request/response schemas with validation rules |
-| `dashboard/app.py` | Dashboard | Streamlit interactive dashboard with Plotly charts |
-| `tests/test_api.py` | Testing | 18 automated tests (health, predict, batch, validation) |
+### Layer 1: Data Pipeline
+
+The data pipeline transforms raw CSV data into 45 engineered features stored in a relational database. It runs as three sequential Python modules.
+
+**`src/data/ingest.py`** — Loads the Kaggle Telco Customer Churn CSV, reshapes columns to SaaS terminology, cleans data types, and inserts records into SQLite (local/Colab) or PostgreSQL (Docker).
+
+**`src/data/generate_synthetic.py`** — Creates realistic engagement metrics (login frequency, feature adoption, session duration) and support ticket data, correlated with actual churn outcomes. This simulates the behavioural data a real SaaS platform would have.
+
+**`src/data/feature_engineering.py`** — Executes SQL queries using CTEs, window functions, and joins to produce the final feature set. The SQL-based approach demonstrates that feature engineering can happen in the database layer, not just in pandas.
+
+### Layer 2: Model Training
+
+**`src/models/train.py`** — Trains three models (Logistic Regression, Random Forest, XGBoost) with MLflow experiment tracking. Each run logs parameters, metrics, and model artifacts.
+
+**`src/models/evaluate.py`** — Generates SHAP explanations, ROC/PR curves, confusion matrices, and performs threshold optimisation to maximise F1 score. Also calculates revenue impact at the optimised threshold.
+
+**`src/models/predict.py`** — Scores all customers using the best model, assigns risk levels (critical/high/medium/low), and calculates monthly revenue at risk per customer.
+
+### Layer 3: API Service
+
+**`api/main.py`** — FastAPI application with three endpoints. Model artifacts load at startup via the lifespan context manager. Input is validated against Pydantic schemas. Predictions include probability, risk level, revenue at risk, and top risk factors.
+
+**`api/schemas.py`** — Pydantic models defining the data contracts. CustomerFeatures validates 29 input fields with type checking and value constraints. PredictionResponse defines the output structure.
+
+### Layer 4: Dashboard
+
+**`dashboard/app.py`** — Streamlit application that reads scored customer data and model metadata. Provides KPI cards, interactive Plotly charts, customer drilldown, and CSV export. Sidebar filters update all views reactively.
+
+### Layer 5: Infrastructure
+
+**`docker-compose.yml`** — Orchestrates three services (PostgreSQL, API, Dashboard) with health checks ensuring correct startup order. The API waits for the database to be ready; the dashboard waits for the API.
+
+**`.github/workflows/ci.yml`** — GitHub Actions pipeline that runs Ruff linting and pytest on every push to main. Verifies model artifacts exist to catch broken builds.
+
+**`Makefile`** — Common development commands: `make stack-up`, `make test`, `make lint`, `make pipeline`.
 
 ---
 
-## Architectural Decisions
+## Key Architectural Decisions
 
-### Why SQLite over PostgreSQL?
+### Why SQLite locally, PostgreSQL in Docker?
 
-The project supports both. SQLite is the default because it requires zero setup — no Docker, no database server, no credentials. This makes the project fully reproducible for anyone who clones the repo. PostgreSQL is available via Docker Compose for users who want a more production-realistic setup. The toggle is a single environment variable (`USE_POSTGRES=true`).
-
-### Why a notebook-driven pipeline?
-
-For a portfolio project, Colab notebooks are the most accessible execution environment. They allow reviewers to see inputs, outputs, and visualisations in one place. The actual logic lives in modular `src/` files that the notebooks import — so the code is production-structured while the execution is notebook-friendly.
-
-### Why MLflow for experiment tracking?
-
-MLflow is the most widely used experiment tracking tool in industry. Including it demonstrates awareness of ML lifecycle management — comparing runs, logging metrics, storing model artifacts. The file-based backend (`mlruns/`) requires no server setup.
-
-### Why Logistic Regression can beat XGBoost here?
-
-With only ~7,000 rows and 45 engineered features, the dataset is small enough that a well-tuned linear model can match or beat a tree ensemble. The threshold optimisation step matters more than model selection — moving from the default 0.5 threshold to the optimal ~0.76 dramatically improves business outcomes.
+SQLite requires zero setup — essential for Google Colab and quick local development. PostgreSQL in Docker demonstrates awareness of production database practices. The codebase supports both via environment variables, showing the candidate can build for multiple deployment targets.
 
 ### Why FastAPI over Flask?
 
-FastAPI provides three things Flask doesn't: automatic request validation via Pydantic (the API rejects bad data before it reaches the model), auto-generated Swagger documentation (interactive API docs at `/docs`), and native async support. It's the current industry standard for ML model serving in Python.
-
-### Why separate Pydantic schemas?
-
-Keeping `schemas.py` separate from `main.py` follows the single-responsibility principle. The schemas define the data contracts independently of the endpoint logic. This makes them testable, reusable, and self-documenting — the Swagger UI is generated directly from these schemas.
-
-### Why TestClient instead of a running server in Colab?
-
-Colab can't easily expose ports for a persistent HTTP server. FastAPI's `TestClient` (built on `httpx`) simulates real HTTP requests without needing a running server process. This means all API testing works seamlessly in Colab while still exercising the full request/response cycle.
+FastAPI provides automatic request validation (Pydantic), auto-generated Swagger documentation, async support, and is the current industry standard for ML model serving. Flask would work but requires more boilerplate for the same functionality.
 
 ### Why Streamlit over Plotly Dash or React?
 
-Streamlit is Python-native, requires no frontend skills, and produces professional-looking dashboards in a fraction of the time. For a portfolio project, the goal is demonstrating data storytelling and stakeholder communication, not frontend engineering. Streamlit achieves this with minimal code.
+Streamlit is Python-native and produces professional dashboards with minimal code. For a portfolio project, the goal is demonstrating data storytelling and stakeholder communication, not frontend engineering.
 
-### Why Plotly over matplotlib/seaborn for the dashboard?
+### Why Docker Compose with health checks?
 
-matplotlib and seaborn produce static images. Plotly produces interactive charts that users can hover, zoom, and pan. For a dashboard aimed at business stakeholders, interactivity is essential — a customer success manager needs to hover over a data point to see which customer it represents.
+Health checks ensure services start in the correct order (database before API, API before dashboard). Without them, the API would crash on startup if it tried to connect to a database that wasn't ready yet. This is a production pattern that demonstrates infrastructure awareness.
 
-### Why a CSV download button?
+### Why GitHub Actions over Jenkins or CircleCI?
 
-The most actionable output of a churn prediction system is a list of high-risk customers. The download button lets a customer success manager export this list and import it directly into their CRM or outreach tool. This small feature demonstrates product thinking — understanding how the output will actually be used.
+GitHub Actions is free for public repositories, tightly integrated with GitHub, and the most common CI/CD tool candidates will encounter. It requires no external setup.
 
----
+### Why Ruff over flake8/pylint?
 
-## Data Flow
+Ruff is 10-100x faster than traditional Python linters and combines the functionality of flake8, isort, and pyupgrade in a single tool. It's increasingly adopted in the Python ecosystem.
 
-### Phase 1: Raw → Features
+### Why a Makefile?
 
-1. `ingest.py` loads the Kaggle Telco CSV and reshapes columns for a SaaS context
-2. Data is inserted into SQLite tables (customers, subscriptions, usage, support)
-3. `synthetic.py` generates engagement metrics correlated with actual churn outcomes
-4. `features.sql` runs CTE-based queries that produce 45 features per customer
-5. `feature_engineering.py` executes the SQL and exports `features.csv`
-
-### Phase 2: Features → Model → Scores
-
-1. `train.py` loads features, splits data, trains 3 models with MLflow tracking
-2. Best model selected by ROC-AUC, threshold optimised by F1 score
-3. `evaluate.py` generates SHAP explanations, ROC curves, confusion matrix
-4. `predict.py` scores all customers with risk levels and revenue at risk
-5. Results saved to `scored_customers.csv`
-
-### Phase 3: Model → API
-
-1. `api/main.py` loads model artifacts at startup via FastAPI's lifespan context
-2. Incoming requests are validated against Pydantic schemas
-3. Features are transformed to match training format (column order, scaling)
-4. Predictions include probability, risk level, revenue at risk, and top risk factors
-
-### Phase 4: Scores → Dashboard
-
-1. `dashboard/app.py` reads `scored_customers.csv` and `model_metadata.joblib`
-2. Data is cached with `@st.cache_data` for performance
-3. Sidebar filters update all charts and tables reactively
-4. Customer drilldown merges scored data with full features for detailed analysis
+Makefiles are a standard way to document and automate common project commands. A hiring manager can open the Makefile and immediately understand all available operations without reading documentation.
 
 ---
 
 ## Environment Compatibility
-
-The project is designed to run in three environments:
 
 | Environment | Database | API Testing | Dashboard |
 |---|---|---|---|
@@ -159,14 +116,24 @@ The project is designed to run in three environments:
 
 No GPU is needed — all models are tabular and train in seconds.
 
-**External dependencies:** Standard Python data science libraries (pandas, scikit-learn, XGBoost, SHAP, MLflow, FastAPI, Streamlit, Plotly). All are installable via pip with no system-level dependencies.
-
-**Data dependencies:** The only external input is the Telco Customer Churn CSV from Kaggle. Everything else is generated by the pipeline.
-
 ---
 
-## Planned Architecture Extensions
+## File Responsibilities
 
-**Docker Compose** — The full stack (database + API + dashboard) will be containerised so the entire system can be started with a single `docker-compose up` command.
-
-**GitHub Actions CI** — Automated linting (ruff/flake8) and testing on every push, demonstrating CI/CD awareness.
+| File | Responsibility |
+|---|---|
+| `src/config.py` | Centralised paths, constants, and environment detection |
+| `src/db.py` | Database engine factory (SQLite or PostgreSQL based on environment) |
+| `src/data/ingest.py` | Raw CSV → cleaned tables in database |
+| `src/data/generate_synthetic.py` | Create engagement and support data |
+| `src/data/feature_engineering.py` | Execute SQL features and export CSV |
+| `src/sql/features.sql` | CTE-based feature engineering queries |
+| `src/models/train.py` | Train 3 models with MLflow tracking |
+| `src/models/evaluate.py` | SHAP, ROC/PR, confusion matrix, threshold tuning |
+| `src/models/predict.py` | Batch scoring with risk levels and revenue impact |
+| `api/main.py` | FastAPI endpoints for real-time prediction |
+| `api/schemas.py` | Pydantic request/response validation |
+| `dashboard/app.py` | Streamlit interactive dashboard |
+| `tests/test_api.py` | 18 automated API tests |
+| `docker-compose.yml` | Full stack orchestration |
+| `.github/workflows/ci.yml` | CI/CD pipeline |
