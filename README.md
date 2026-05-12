@@ -246,32 +246,6 @@ The pipeline generates the following visualisations (saved to `models/plots/`):
 
 ---
 
-## Roadmap
-
-- [x] Phase 1 — Data pipeline (ingestion, synthetic data, SQL feature engineering)
-- [x] Phase 2 — Modelling (training, evaluation, SHAP, revenue impact, batch scoring)
-- [ ] Phase 3 — FastAPI REST endpoint for real-time predictions
-- [ ] Phase 4 — Streamlit dashboard for customer success teams
-- [ ] Phase 5 — Docker containerisation of the full stack
-- [ ] Phase 6 — CI/CD with GitHub Actions
-
----
-
-## Future Improvements
-
-- Add real-time prediction API with FastAPI (`/predict`, `/health`, `/batch-score`)
-- Build interactive Streamlit dashboard for non-technical stakeholders
-- Containerise the full stack (API + dashboard + database) with Docker Compose
-- Add GitHub Actions CI pipeline for linting and testing
-- Implement model retraining pipeline with data drift detection
-- A/B testing framework for churn intervention strategies
-
----
-
-## Author
-
-Built as part of a portfolio demonstrating end-to-end data science and ML engineering skills for UK graduate roles.
-
 ---
 
 ## Licence
