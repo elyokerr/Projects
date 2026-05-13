@@ -1,86 +1,68 @@
 """
-API Request & Response Schemas
-================================
-Pydantic models that define the data contracts for the churn prediction API.
+API request and response schemas.
 
-These schemas:
-- Validate incoming request data (type checking, value ranges)
-- Define the shape of API responses
-- Auto-generate OpenAPI/Swagger documentation
+Pydantic models that define the data contracts for the API. Defining
+schemas this way gets us three things for free:
 
-Why Pydantic?
-- Industry standard for FastAPI input validation
-- Provides automatic type coercion and error messages
-- Generates interactive API docs at /docs
+  - Automatic input validation with clear error messages
+  - Auto-generated Swagger and ReDoc documentation
+  - Type-safe code in the endpoint handlers
+
+The CustomerFeatures schema covers the 29 most useful features. Any
+features computed downstream that aren't in this schema get a default
+of 0 inside the API service, which is correct for binary/flag features
+and reasonable for ratio features in the absence of other information.
 """
 
 from typing import List, Optional
+
 from pydantic import BaseModel, Field
 
 
-# ─── Request Schemas ─────────────────────────────────────────────
+# --- Request schemas ------------------------------------------------------
 
 
 class CustomerFeatures(BaseModel):
-    """
-    Input features for a single customer churn prediction.
+    """Features for a single customer churn prediction.
 
-    These match the 45 features produced by the feature engineering pipeline.
-    Only the most impactful features are required; others have sensible defaults.
+    Only four fields are required: monthly_revenue, tenure_months,
+    contract_type, and total_charges. The rest have sensible defaults
+    so the API can be called with minimal information when richer
+    behavioral data isn't available.
     """
 
-    # ── Subscription Features ──
-    monthly_revenue: float = Field(
-        ..., ge=0, description="Monthly recurring revenue (£)"
-    )
-    tenure_months: int = Field(
-        ..., ge=0, description="Months as a customer"
-    )
+    # Subscription features (required)
+    monthly_revenue: float = Field(..., ge=0, description="Monthly recurring revenue (£)")
+    tenure_months: int = Field(..., ge=0, description="Months as a customer")
     contract_type: int = Field(
         ..., ge=0, le=2,
-        description="Contract type: 0=month-to-month, 1=one-year, 2=two-year"
+        description="Contract type: 0=month-to-month, 1=one-year, 2=two-year",
     )
-    total_charges: float = Field(
-        ..., ge=0, description="Total charges over lifetime (£)"
-    )
+    total_charges: float = Field(..., ge=0, description="Lifetime total charges (£)")
+
+    # Subscription features (optional with defaults)
     payment_method: int = Field(
         default=0, ge=0, le=3,
-        description="Payment method: 0=electronic check, 1=mailed check, 2=bank transfer, 3=credit card"
+        description="0=electronic check, 1=mailed check, 2=bank transfer, 3=credit card",
     )
-    paperless_billing: int = Field(
-        default=1, ge=0, le=1, description="Uses paperless billing: 0=no, 1=yes"
-    )
+    paperless_billing: int = Field(default=1, ge=0, le=1)
 
-    # ── Usage & Engagement Features ──
-    login_frequency: float = Field(
-        default=5.0, ge=0, description="Average logins per month"
-    )
+    # Usage and engagement
+    login_frequency: float = Field(default=5.0, ge=0, description="Average logins per month")
     feature_adoption_rate: float = Field(
         default=0.5, ge=0.0, le=1.0,
-        description="Fraction of product features used (0-1)"
+        description="Fraction of product features used (0-1)",
     )
-    days_since_last_login: int = Field(
-        default=3, ge=0, description="Days since the customer last logged in"
-    )
-    avg_session_duration: float = Field(
-        default=15.0, ge=0, description="Average session duration in minutes"
-    )
-    engagement_score: float = Field(
-        default=50.0, ge=0, le=100, description="Composite engagement score (0-100)"
-    )
+    days_since_last_login: int = Field(default=3, ge=0)
+    avg_session_duration: float = Field(default=15.0, ge=0, description="Minutes per session")
+    engagement_score: float = Field(default=50.0, ge=0, le=100)
 
-    # ── Support Features ──
-    support_tickets_total: int = Field(
-        default=2, ge=0, description="Total support tickets submitted"
-    )
-    support_tickets_last_90d: int = Field(
-        default=0, ge=0, description="Support tickets in the last 90 days"
-    )
-    escalation_count: int = Field(
-        default=0, ge=0, description="Number of escalated support tickets"
-    )
+    # Support history
+    support_tickets_total: int = Field(default=2, ge=0)
+    support_tickets_last_90d: int = Field(default=0, ge=0)
+    escalation_count: int = Field(default=0, ge=0)
 
-    # ── Service Features ──
+    # Product entitlements
     has_phone_service: int = Field(default=1, ge=0, le=1)
     has_internet_service: int = Field(default=1, ge=0, le=1)
     has_online_security: int = Field(default=0, ge=0, le=1)
@@ -90,16 +72,12 @@ class CustomerFeatures(BaseModel):
     has_streaming_tv: int = Field(default=0, ge=0, le=1)
     has_streaming_movies: int = Field(default=0, ge=0, le=1)
 
-    # ── Derived / Ratio Features ──
-    revenue_per_tenure: float = Field(
-        default=0.0, ge=0, description="Monthly revenue divided by tenure"
-    )
-    engagement_to_tenure_ratio: float = Field(
-        default=0.0, ge=0, description="Engagement score relative to tenure"
-    )
-    support_to_usage_ratio: float = Field(
-        default=0.0, ge=0, description="Support tickets relative to usage"
-    )
+    # Derived ratios
+    revenue_per_tenure: float = Field(default=0.0, ge=0)
+    engagement_to_tenure_ratio: float = Field(default=0.0, ge=0)
+    support_to_usage_ratio: float = Field(default=0.0, ge=0)
+
+    # Demographics
     is_senior_citizen: int = Field(default=0, ge=0, le=1)
     has_partner: int = Field(default=0, ge=0, le=1)
     has_dependents: int = Field(default=0, ge=0, le=1)
@@ -143,52 +121,46 @@ class CustomerFeatures(BaseModel):
 
 
 class BatchPredictionRequest(BaseModel):
-    """Request body for batch predictions on multiple customers."""
+    """Request body for the batch endpoint."""
 
     customers: List[CustomerFeatures] = Field(
         ..., min_length=1, max_length=1000,
-        description="List of customers to score (max 1000 per request)"
+        description="One to one thousand customers to score",
     )
 
 
-# ─── Response Schemas ────────────────────────────────────────────
+# --- Response schemas -----------------------------------------------------
 
 
 class PredictionResponse(BaseModel):
-    """Response for a single customer prediction."""
+    """Per-customer prediction returned by /predict and /predict/batch."""
 
-    churn_probability: float = Field(
-        description="Probability of churning (0-1)"
-    )
-    churn_prediction: bool = Field(
-        description="Whether the customer is predicted to churn at the optimal threshold"
-    )
-    risk_level: str = Field(
-        description="Risk category: critical, high, medium, or low"
-    )
+    churn_probability: float = Field(description="Probability of churn (0 to 1)")
+    churn_prediction: bool = Field(description="Decision at the optimized threshold")
+    risk_level: str = Field(description="critical, high, medium, or low")
     monthly_revenue_at_risk: float = Field(
-        description="Monthly revenue that would be lost if this customer churns (£)"
+        description="Monthly revenue exposure if the customer churns (£)",
     )
     top_risk_factors: Optional[List[str]] = Field(
         default=None,
-        description="Top features contributing to the churn prediction"
+        description="Up to five features most strongly associated with this prediction",
     )
 
 
 class BatchPredictionResponse(BaseModel):
-    """Response for batch predictions."""
+    """Aggregate response for batch predictions."""
 
     predictions: List[PredictionResponse]
     summary: dict = Field(
-        description="Aggregate stats: total scored, high-risk count, total revenue at risk"
+        description="Aggregate statistics across the batch",
     )
 
 
 class HealthResponse(BaseModel):
-    """Response for the health check endpoint."""
+    """Health check response."""
 
-    status: str = Field(description="Service status")
-    model_loaded: bool = Field(description="Whether the model is loaded and ready")
-    model_name: str = Field(description="Name of the loaded model")
-    optimal_threshold: float = Field(description="Decision threshold in use")
-    version: str = Field(description="API version")
+    status: str
+    model_loaded: bool
+    model_name: str
+    optimal_threshold: float
+    version: str

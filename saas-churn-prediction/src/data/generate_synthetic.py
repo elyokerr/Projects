@@ -1,15 +1,24 @@
 """
-Synthetic Engagement Data Generator
-=====================================
-Generates realistic SaaS usage and engagement data for each customer.
-The generated data is intentionally correlated with churn status to produce
-meaningful features, while adding enough noise to avoid data leakage.
+Synthetic engagement and support ticket generator.
+
+The Kaggle Telco dataset has no behavioral data: no logins, no feature
+usage, no support tickets. In a real SaaS company that data would come
+from product analytics tools and a CRM. To make the project feel
+realistic and to give the model something richer to learn from, this
+module simulates that behavioral data.
+
+The generation is deliberately correlated with the existing churn label.
+Customers who actually churned tend to receive lower engagement scores
+and more support tickets. This mirrors real-world patterns where
+declining product usage is one of the earliest churn signals - but the
+correlation is noisy enough that the model still has to work for its
+performance.
 
 Tables created:
-    - usage_events     : weekly login counts, feature usage, session duration
-    - support_tickets  : customer support interactions with severity/resolution
+    usage_events     - weekly login counts, session duration, feature usage
+    support_tickets  - severity, resolution status, time to resolve
 
-Usage:
+Run as a module:
     python -m src.data.generate_synthetic
 """
 
@@ -18,7 +27,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sqlalchemy import text
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
@@ -26,11 +34,12 @@ from src.config import RANDOM_STATE
 from src.db import get_engine
 
 
+# Fix the seed once so the entire generation process is reproducible.
 np.random.seed(RANDOM_STATE)
 
 
 def load_base_data(engine) -> pd.DataFrame:
-    """Load customer + subscription data to correlate engagement with."""
+    """Load the customer attributes we need to condition synthetic data on."""
     query = """
         SELECT
             c.customer_id,
@@ -46,33 +55,32 @@ def load_base_data(engine) -> pd.DataFrame:
 
 
 def generate_usage_events(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Generate weekly usage metrics for each customer.
+    """Generate four weeks of weekly usage metrics per customer.
 
-    Churned customers tend to have:
-    - Fewer logins per week
-    - Lower feature adoption rate
-    - Shorter session durations
-    - Declining usage trends
+    Engagement levels are sampled from different distributions for
+    churners and active customers. A trend term is also added so that
+    churners typically show declining usage over the four-week window,
+    while active customers stay flat or grow.
     """
     records = []
 
     for _, row in df.iterrows():
         is_churner = row["churn"] == 1
         tier = row["service_tier"]
-        tenure = row["account_age_months"]
 
+        # Sample baselines from churner-friendly or active-friendly ranges.
         if is_churner:
             base_logins = np.random.uniform(1, 8)
             base_session_min = np.random.uniform(3, 15)
             base_feature_pct = np.random.uniform(0.05, 0.35)
-            trend = np.random.uniform(-0.3, -0.02)
+            trend = np.random.uniform(-0.3, -0.02)  # Declining
         else:
             base_logins = np.random.uniform(4, 20)
             base_session_min = np.random.uniform(8, 45)
             base_feature_pct = np.random.uniform(0.20, 0.80)
-            trend = np.random.uniform(-0.05, 0.15)
+            trend = np.random.uniform(-0.05, 0.15)  # Flat or growing
 
+        # Premium tier users tend to be more engaged; free tier less so.
         tier_boost = {"premium": 1.3, "basic": 1.0, "free": 0.6}.get(tier, 1.0)
 
         for week in range(1, 5):
@@ -96,19 +104,17 @@ def generate_usage_events(df: pd.DataFrame) -> pd.DataFrame:
             })
 
     result = pd.DataFrame(records)
-    print(f"  Generated {len(result):,} usage event rows ({len(df):,} customers × 4 weeks)")
+    print(f"  Generated {len(result):,} usage event rows ({len(df):,} customers x 4 weeks)")
     return result
 
 
 def generate_support_tickets(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Generate support ticket history for each customer.
+    """Generate a synthetic support ticket history per customer.
 
-    Churned customers tend to have:
-    - More tickets (frustration)
-    - Higher severity tickets
-    - More unresolved tickets
-    - Longer resolution times
+    Churners receive more tickets on average, with higher severity and
+    a lower resolution rate. This reflects the pattern where escalating
+    frustration with the product manifests as support contact volume
+    before the customer eventually leaves.
     """
     records = []
     severity_levels = ["low", "medium", "high", "critical"]
@@ -121,12 +127,20 @@ def generate_support_tickets(df: pd.DataFrame) -> pd.DataFrame:
         is_churner = row["churn"] == 1
         tenure = row["account_age_months"]
 
+        # Ticket count distribution: churners skew higher.
         if is_churner:
-            n_tickets = np.random.choice(range(0, 8), p=[0.10, 0.15, 0.25, 0.20, 0.15, 0.08, 0.05, 0.02])
+            n_tickets = np.random.choice(
+                range(0, 8),
+                p=[0.10, 0.15, 0.25, 0.20, 0.15, 0.08, 0.05, 0.02],
+            )
         else:
-            n_tickets = np.random.choice(range(0, 8), p=[0.25, 0.30, 0.20, 0.12, 0.07, 0.03, 0.02, 0.01])
+            n_tickets = np.random.choice(
+                range(0, 8),
+                p=[0.25, 0.30, 0.20, 0.12, 0.07, 0.03, 0.02, 0.01],
+            )
 
         for t in range(n_tickets):
+            # Severity: churners get more high/critical tickets.
             if is_churner:
                 severity = np.random.choice(severity_levels, p=[0.15, 0.30, 0.35, 0.20])
             else:
@@ -134,11 +148,13 @@ def generate_support_tickets(df: pd.DataFrame) -> pd.DataFrame:
 
             category = np.random.choice(categories)
 
+            # Resolution rate: churners have more unresolved tickets.
             if is_churner:
                 resolved = np.random.choice([0, 1], p=[0.35, 0.65])
             else:
                 resolved = np.random.choice([0, 1], p=[0.10, 0.90])
 
+            # Resolution time scales with severity; churners wait longer.
             if resolved:
                 base_hours = {"low": 4, "medium": 12, "high": 24, "critical": 48}[severity]
                 resolution_hours = max(1, int(base_hours * np.random.uniform(0.5, 2.5)))
@@ -160,12 +176,15 @@ def generate_support_tickets(df: pd.DataFrame) -> pd.DataFrame:
             })
 
     result = pd.DataFrame(records)
-    print(f"  Generated {len(result):,} support tickets for {result['customer_id'].nunique():,} customers")
+    print(
+        f"  Generated {len(result):,} support tickets "
+        f"for {result['customer_id'].nunique():,} customers"
+    )
     return result
 
 
-def run_synthetic_generation():
-    """Execute the full synthetic data generation pipeline."""
+def run_synthetic_generation() -> None:
+    """Execute the full synthetic generation pipeline."""
     print("=" * 60)
     print("Synthetic Engagement Data Generation")
     print("=" * 60)
@@ -181,26 +200,33 @@ def run_synthetic_generation():
     print("\n[3/4] Generating support tickets...")
     support_tickets = generate_support_tickets(df)
 
-    print("\n[4/4] Writing to database...")
+    print("\n[4/4] Writing tables to database...")
     usage_events.to_sql("usage_events", engine, if_exists="replace", index=False)
-    print(f"  ✓ usage_events table: {len(usage_events):,} rows")
+    print(f"  usage_events: {len(usage_events):,} rows")
 
     support_tickets.to_sql("support_tickets", engine, if_exists="replace", index=False)
-    print(f"  ✓ support_tickets table: {len(support_tickets):,} rows")
+    print(f"  support_tickets: {len(support_tickets):,} rows")
 
-    print("\n─── Engagement Summary ───")
+    # Sanity check: confirm the generation captured the intended pattern.
+    print("\nEngagement Summary")
     churners = df[df["churn"] == 1]["customer_id"]
     active = df[df["churn"] == 0]["customer_id"]
 
     churn_logins = usage_events[usage_events["customer_id"].isin(churners)]["logins"].mean()
     active_logins = usage_events[usage_events["customer_id"].isin(active)]["logins"].mean()
-    print(f"  Avg weekly logins — churners: {churn_logins:.1f}, active: {active_logins:.1f}")
+    print(f"  Avg weekly logins: churners={churn_logins:.1f}, active={active_logins:.1f}")
 
-    churn_tickets = support_tickets[support_tickets["customer_id"].isin(churners)].groupby("customer_id").size().mean()
-    active_tickets = support_tickets[support_tickets["customer_id"].isin(active)].groupby("customer_id").size().mean()
-    print(f"  Avg tickets — churners: {churn_tickets:.1f}, active: {active_tickets:.1f}")
+    churn_tickets = (
+        support_tickets[support_tickets["customer_id"].isin(churners)]
+        .groupby("customer_id").size().mean()
+    )
+    active_tickets = (
+        support_tickets[support_tickets["customer_id"].isin(active)]
+        .groupby("customer_id").size().mean()
+    )
+    print(f"  Avg tickets: churners={churn_tickets:.1f}, active={active_tickets:.1f}")
 
-    print("\n✓ Synthetic data generation complete!")
+    print("\nSynthetic data generation complete.")
     print("=" * 60)
 
 

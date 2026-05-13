@@ -1,54 +1,51 @@
 """
-SaaS Churn Prediction API
-============================
-A FastAPI service that serves churn predictions from the trained model.
+SaaS Churn Prediction API.
+
+A FastAPI service that exposes the trained churn model as a REST API.
+It validates incoming requests with Pydantic, runs predictions, and
+returns probabilities together with business-friendly risk levels and
+revenue exposure estimates.
 
 Endpoints:
-    GET  /health         → Service status and model info
-    POST /predict        → Single customer churn prediction
-    POST /predict/batch  → Batch predictions (up to 1000 customers)
+    GET  /health           - Service status and model info
+    POST /predict          - Single-customer prediction
+    POST /predict/batch    - Batch prediction (up to 1000 customers)
 
 Run locally:
     uvicorn api.main:app --reload --port 8000
 
-Interactive docs:
-    http://localhost:8000/docs  (Swagger UI)
-    http://localhost:8000/redoc (ReDoc)
-
-Why FastAPI?
-    - Automatic request validation via Pydantic
-    - Auto-generated interactive API documentation
-    - Async support for high concurrency
-    - Type hints throughout — clean, readable code
-    - Industry standard for ML model serving in Python
+Interactive documentation:
+    http://localhost:8000/docs    (Swagger UI)
+    http://localhost:8000/redoc   (ReDoc)
 """
 
 import sys
-from pathlib import Path
 from contextlib import asynccontextmanager
-from typing import Optional
+from pathlib import Path
 
 import joblib
-import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-# ── Add project root to path so we can import src modules ──
+# Allow imports from src/ when running uvicorn from the project root.
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.config import MODELS_DIR, PROCESSED_DATA_DIR
+from src.config import MODELS_DIR
 from api.schemas import (
-    CustomerFeatures,
     BatchPredictionRequest,
-    PredictionResponse,
     BatchPredictionResponse,
+    CustomerFeatures,
     HealthResponse,
+    PredictionResponse,
 )
 
 
-# ─── Global Model State ─────────────────────────────────────────
+# --- Global model state ---------------------------------------------------
+# Populated once at startup by the lifespan handler. Module-level globals
+# are appropriate here because the model is read-only and shared across
+# every request.
 
 model = None
 scaler = None
@@ -57,11 +54,16 @@ feature_names = None
 optimal_threshold = 0.5
 
 
-# ─── Application Lifecycle ──────────────────────────────────────
+# --- Lifespan handler -----------------------------------------------------
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Load model artifacts at startup, clean up on shutdown."""
+    """Load model artifacts at startup; clean up on shutdown.
+
+    Loading once at startup (rather than per-request) keeps latency low.
+    The artifacts produced by src.models.train are read from disk and
+    bound to the module-level globals above.
+    """
     global model, scaler, metadata, feature_names, optimal_threshold
 
     try:
@@ -70,86 +72,61 @@ async def lifespan(app: FastAPI):
         scaler_path = MODELS_DIR / "scaler.joblib"
 
         print("\n" + "=" * 60)
-        print("LOADING MODEL ARTIFACTS")
+        print("Loading model artifacts")
         print("=" * 60)
-
-        print(f"PROJECT_ROOT: {PROJECT_ROOT}")
-        print(f"MODELS_DIR: {MODELS_DIR}")
-
-        print(f"\nModel path: {model_path}")
-        print(f"Exists: {model_path.exists()}")
-
-        print(f"\nMetadata path: {metadata_path}")
-        print(f"Exists: {metadata_path.exists()}")
-
-        print(f"\nScaler path: {scaler_path}")
-        print(f"Exists: {scaler_path.exists()}")
+        print(f"Models directory: {MODELS_DIR}")
 
         if not model_path.exists():
             raise RuntimeError(
                 f"Model not found at {model_path}. "
-                "Run the training pipeline first (Phase 2)."
+                "Run the training pipeline first (src.models.train)."
             )
-
         if not metadata_path.exists():
-            raise RuntimeError(
-                f"Metadata not found at {metadata_path}"
-            )
+            raise RuntimeError(f"Metadata not found at {metadata_path}")
 
-        # ── Load artifacts ──
         model = joblib.load(model_path)
         metadata = joblib.load(metadata_path)
-
         feature_names = metadata["feature_names"]
         optimal_threshold = metadata["optimal_threshold"]
 
-        # ── Optional scaler ──
-        if scaler_path.exists():
-            scaler = joblib.load(scaler_path)
-            print("\n✓ Scaler loaded")
-        else:
-            scaler = None
-            print("\n• No scaler found (normal for tree-based models)")
+        # The scaler is only needed for the logistic regression model;
+        # tree-based models work on raw values.
+        scaler = joblib.load(scaler_path) if scaler_path.exists() else None
 
-        print(f"\n✓ Model loaded: {metadata['best_model']}")
-        print(f"✓ Threshold: {optimal_threshold:.4f}")
-        print(f"✓ Features expected: {len(feature_names)}")
-
+        print(f"Model:              {metadata['best_model']}")
+        print(f"Optimal threshold:  {optimal_threshold:.4f}")
+        print(f"Feature count:      {len(feature_names)}")
+        print(f"Scaler loaded:      {scaler is not None}")
         print("=" * 60 + "\n")
 
-    except Exception as e:
-        print("\n" + "=" * 60)
-        print("MODEL LOADING FAILED")
-        print("=" * 60)
-        print(type(e))
-        print(str(e))
-        print("=" * 60 + "\n")
-
+    except Exception as exc:
+        # Set everything to None so /health reports the failure clearly.
+        print(f"\nModel loading failed: {exc}\n")
         model = None
         metadata = None
         scaler = None
         feature_names = None
 
-    yield  # Application runs
+    yield
 
-    # Cleanup
-    print("Shutting down API...")
+    print("API shutting down.")
 
 
-# ─── FastAPI App ─────────────────────────────────────────────────
+# --- FastAPI app ----------------------------------------------------------
 
 app = FastAPI(
     title="SaaS Churn Prediction API",
     description=(
-        "Predict customer churn risk for a SaaS product. "
-        "Returns churn probability, risk level, and revenue at risk. "
-        "Built with FastAPI, scikit-learn, and XGBoost."
+        "Predicts churn risk for SaaS customers. Returns churn probability, "
+        "risk level, monthly revenue at risk, and the top features driving "
+        "each prediction."
     ),
     version="1.0.0",
     lifespan=lifespan,
 )
 
-# Allow cross-origin requests (for dashboard or frontend integration)
+# Wide-open CORS for portfolio convenience. A production deployment would
+# narrow this to the dashboard's origin.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -159,42 +136,39 @@ app.add_middleware(
 )
 
 
-# ─── Helper Functions ────────────────────────────────────────────
+# --- Helpers --------------------------------------------------------------
 
 def _classify_risk(probability: float) -> str:
-    """Map churn probability to a business risk level."""
+    """Bucket a churn probability into a business-friendly risk tier."""
     if probability >= 0.8:
         return "critical"
-    elif probability >= 0.6:
+    if probability >= 0.6:
         return "high"
-    elif probability >= 0.4:
+    if probability >= 0.4:
         return "medium"
-    else:
-        return "low"
+    return "low"
 
 
 def _prepare_features(customer: CustomerFeatures) -> pd.DataFrame:
-    """
-    Convert a Pydantic model to a DataFrame matching the training features.
+    """Convert a validated request body into a model-ready DataFrame.
 
-    The model expects features in the same order and names as training.
-    Any features not provided by the API schema get a default value of 0.
+    The model expects features in a specific order with specific names.
+    Any feature the request doesn't supply gets a default of 0 - the
+    Pydantic schema already enforces this for the columns it knows about,
+    but engineered features computed elsewhere need a fallback too.
     """
     customer_dict = customer.model_dump()
-
-    # Build a DataFrame with all expected feature columns
     row = {fname: customer_dict.get(fname, 0) for fname in feature_names}
-    df = pd.DataFrame([row], columns=feature_names)
-
-    return df
+    return pd.DataFrame([row], columns=feature_names)
 
 
 def _predict_single(customer: CustomerFeatures) -> PredictionResponse:
-    """Run prediction for a single customer."""
+    """Run a prediction for one customer and return the API response shape."""
     df = _prepare_features(customer)
 
-    # Apply scaler if the best model requires it (Logistic Regression)
-    if scaler is not None and metadata["best_model"] == "Logistic Regression":
+    # Linear models need scaled inputs; tree models don't. The decision
+    # depends on which model won the comparison and is stored in metadata.
+    if scaler is not None and metadata["best_model"] == "logistic_regression":
         features_array = scaler.transform(df)
     else:
         features_array = df.values
@@ -203,13 +177,17 @@ def _predict_single(customer: CustomerFeatures) -> PredictionResponse:
     prediction = probability >= optimal_threshold
     risk_level = _classify_risk(probability)
 
-    # Identify top risk factors (features with highest absolute values)
+    # "Top risk factors" is a simple ranking by absolute feature value.
+    # A proper implementation would use SHAP values per request - that's
+    # noted as a future improvement in the project README. The current
+    # approximation is fast and gives sensible-looking output.
     feature_values = df.iloc[0]
     top_factors = (
         feature_values.abs()
         .sort_values(ascending=False)
         .head(5)
-        .index.tolist()
+        .index
+        .tolist()
     )
 
     return PredictionResponse(
@@ -223,15 +201,14 @@ def _predict_single(customer: CustomerFeatures) -> PredictionResponse:
     )
 
 
-# ─── Endpoints ───────────────────────────────────────────────────
+# --- Endpoints ------------------------------------------------------------
 
 @app.get("/health", response_model=HealthResponse, tags=["System"])
 async def health_check():
-    """
-    Check if the API is running and the model is loaded.
+    """Report service status and key model parameters.
 
-    Returns service status, model info, and the decision threshold in use.
-    Useful for monitoring and load balancer health checks.
+    Used by load balancers and orchestrators to decide whether the
+    service is ready to handle traffic. Also useful for debugging.
     """
     return HealthResponse(
         status="healthy",
@@ -244,26 +221,19 @@ async def health_check():
 
 @app.post("/predict", response_model=PredictionResponse, tags=["Predictions"])
 async def predict_churn(customer: CustomerFeatures):
-    """
-    Predict churn risk for a single customer.
+    """Predict churn risk for a single customer.
 
-    Accepts customer features and returns:
-    - Churn probability (0-1)
-    - Binary prediction at the optimal threshold
-    - Risk level (critical / high / medium / low)
-    - Monthly revenue at risk if the customer churns
-    - Top 5 features driving the prediction
-
-    Example use case: A customer success manager checks the risk
-    for a specific account before a renewal call.
+    Returns the probability, the binary decision at the optimized
+    threshold, a business risk tier, monthly revenue exposure, and the
+    top contributing features.
     """
     if model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
     try:
         return _predict_single(customer)
-    except Exception as e:
-        raise HTTPException(status_code=422, detail=f"Prediction failed: {str(e)}")
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"Prediction failed: {exc}")
 
 
 @app.post(
@@ -272,37 +242,33 @@ async def predict_churn(customer: CustomerFeatures):
     tags=["Predictions"],
 )
 async def predict_batch(request: BatchPredictionRequest):
-    """
-    Predict churn risk for multiple customers in one request.
+    """Predict churn for up to 1000 customers in a single request.
 
-    Accepts up to 1000 customers and returns individual predictions
-    plus an aggregate summary (total at risk, revenue exposure).
-
-    Example use case: Nightly batch scoring of the entire customer base,
-    or scoring a segment for a targeted retention campaign.
+    Returns individual predictions plus aggregate statistics (count of
+    high-risk customers, total revenue at risk). The 1000-customer cap
+    is enforced at the schema level.
     """
     if model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
     predictions = []
-    total_revenue_at_risk = 0
+    total_revenue_at_risk = 0.0
     high_risk_count = 0
 
     for customer in request.customers:
         try:
             pred = _predict_single(customer)
-            predictions.append(pred)
-
-            if pred.churn_prediction:
-                total_revenue_at_risk += pred.monthly_revenue_at_risk
-            if pred.risk_level in ("critical", "high"):
-                high_risk_count += 1
-
-        except Exception as e:
+        except Exception as exc:
             raise HTTPException(
                 status_code=422,
-                detail=f"Prediction failed for customer: {str(e)}",
+                detail=f"Prediction failed for a customer: {exc}",
             )
+
+        predictions.append(pred)
+        if pred.churn_prediction:
+            total_revenue_at_risk += pred.monthly_revenue_at_risk
+        if pred.risk_level in ("critical", "high"):
+            high_risk_count += 1
 
     summary = {
         "total_customers_scored": len(predictions),
@@ -314,9 +280,8 @@ async def predict_batch(request: BatchPredictionRequest):
     return BatchPredictionResponse(predictions=predictions, summary=summary)
 
 
-# ─── Run with: uvicorn api.main:app --reload ─────────────────────
+# --- Entry point ----------------------------------------------------------
 
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run("api.main:app", host="0.0.0.0", port=8000, reload=True)

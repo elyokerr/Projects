@@ -1,68 +1,83 @@
-.PHONY: help setup setup-local stack-up stack-down stack-logs \
-       db-up db-down pipeline test lint api dashboard clean
+.PHONY: help setup-local stack-up stack-down stack-logs \
+        db-up db-down pipeline train evaluate predict \
+        test lint lint-fix api dashboard clean
 
-# ─── Help ─────────────────────────────────────────────────────
-help:  ## Show this help
+# Default target: print available commands
+help:  ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-# ─── Full Stack (Docker) ─────────────────────────────────────
-stack-up:  ## Start full stack (DB + API + Dashboard) with Docker
+# --- Full stack (Docker Compose) ------------------------------------------
+
+stack-up:  ## Build and start the full stack (PostgreSQL + API + Dashboard)
 	docker compose up --build -d
 	@echo ""
-	@echo "✓ Full stack running:"
-	@echo "  • API:        http://localhost:8000/docs"
-	@echo "  • Dashboard:  http://localhost:8501"
-	@echo "  • Database:   localhost:5432"
+	@echo "Stack running:"
+	@echo "  API:        http://localhost:8000/docs"
+	@echo "  Dashboard:  http://localhost:8501"
+	@echo "  Database:   localhost:5432"
 
-stack-down:  ## Stop full stack
+stack-down:  ## Stop the full stack
 	docker compose down
 
-stack-logs:  ## View container logs
+stack-logs:  ## Tail container logs
 	docker compose logs -f
 
-# ─── Local Setup (no Docker) ─────────────────────────────────
-setup-local:  ## Setup with SQLite (no Docker needed)
+# --- Database only --------------------------------------------------------
+
+db-up:  ## Start the PostgreSQL container only
+	docker compose up -d postgres
+
+db-down:  ## Stop the PostgreSQL container
+	docker compose down
+
+# --- Local Python workflow (SQLite, no Docker) ----------------------------
+
+setup-local:  ## Install dependencies and run the full data pipeline locally
 	pip install -r requirements.txt
 	python -m src.data.ingest
 	python -m src.data.generate_synthetic
 	python -m src.data.feature_engineering
-	@echo "✓ Local setup complete (SQLite)!"
+	@echo "Local setup complete (SQLite backend)."
 
-# ─── Database ────────────────────────────────────────────────
-db-up:  ## Start PostgreSQL container only
-	docker compose up -d postgres
-
-db-down:  ## Stop PostgreSQL container
-	docker compose down
-
-# ─── Data Pipeline ────────────────────────────────────────────
-pipeline:  ## Run full data pipeline (ingest → synthetic → features)
+pipeline:  ## Run the data pipeline: ingest -> synthetic -> features
 	python -m src.data.ingest
 	python -m src.data.generate_synthetic
 	python -m src.data.feature_engineering
 
-# ─── Services ─────────────────────────────────────────────────
-api:  ## Run API locally (without Docker)
+train:  ## Train all models and select the best
+	python -m src.models.train
+
+evaluate:  ## Generate evaluation plots and SHAP explanations
+	python -m src.models.evaluate
+
+predict:  ## Score all customers and write scored_customers.csv
+	python -m src.models.predict
+
+# --- Services -------------------------------------------------------------
+
+api:  ## Run the API locally (without Docker)
 	uvicorn api.main:app --reload --port 8000
 
-dashboard:  ## Run dashboard locally (without Docker)
+dashboard:  ## Run the dashboard locally (without Docker)
 	streamlit run dashboard/app.py
 
-# ─── Quality ──────────────────────────────────────────────────
-test:  ## Run tests
+# --- Quality --------------------------------------------------------------
+
+test:  ## Run the test suite
 	python -m pytest tests/ -v
 
-lint:  ## Run linter (ruff)
+lint:  ## Run the linter
 	python -m ruff check src/ api/ tests/
 
-lint-fix:  ## Run linter with auto-fix
+lint-fix:  ## Run the linter with auto-fix enabled
 	python -m ruff check src/ api/ tests/ --fix
 
-# ─── Cleanup ──────────────────────────────────────────────────
-clean:  ## Remove generated files
+# --- Cleanup --------------------------------------------------------------
+
+clean:  ## Remove generated data, MLflow runs, and Python caches
 	rm -rf data/processed/*
 	rm -rf data/churn.db
 	rm -rf mlruns/
-	rm -rf __pycache__ src/__pycache__ src/**/__pycache__
-	@echo "✓ Cleaned generated files"
+	find . -type d -name __pycache__ -exec rm -rf {} +
+	@echo "Cleaned generated files."

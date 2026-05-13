@@ -1,20 +1,19 @@
-version: "3.9"
-
-# ═══════════════════════════════════════════════════════════════
-#  SaaS Churn Prediction — Full Stack
-# ═══════════════════════════════════════════════════════════════
-#  Start everything:  docker compose up --build
-#  Stop everything:   docker compose down
-#  Reset database:    docker compose down -v
+# Full-stack orchestration for the SaaS Churn Prediction platform.
 #
-#  Services:
-#    - postgres:   PostgreSQL 16 database (port 5432)
-#    - api:        FastAPI prediction service (port 8000)
-#    - dashboard:  Streamlit interactive dashboard (port 8501)
-# ═══════════════════════════════════════════════════════════════
+# Quickstart:
+#   docker compose up --build       # Start everything (DB, API, dashboard)
+#   docker compose down             # Stop everything
+#   docker compose down -v          # Stop and wipe the database volume
+#
+# Service URLs once running:
+#   API:        http://localhost:8000/docs
+#   Dashboard:  http://localhost:8501
+#   Database:   localhost:5432
 
 services:
-  # ─── PostgreSQL Database ────────────────────────────────────
+
+  # PostgreSQL is the production-style backend. The API depends on it being
+  # healthy before it tries to connect, which avoids a noisy startup race.
   postgres:
     image: postgres:16-alpine
     container_name: churn-postgres
@@ -32,7 +31,8 @@ services:
       timeout: 5s
       retries: 5
 
-  # ─── FastAPI Prediction Service ─────────────────────────────
+  # FastAPI prediction service. The lifespan handler in api/main.py loads
+  # the trained model from /app/models at startup.
   api:
     build:
       context: .
@@ -47,13 +47,19 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      test:
+        - "CMD"
+        - "python"
+        - "-c"
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
       interval: 15s
       timeout: 10s
       retries: 3
       start_period: 10s
 
-  # ─── Streamlit Dashboard ────────────────────────────────────
+  # Streamlit dashboard. Reads scored_customers.csv and model metadata
+  # directly from disk - no API dependency at runtime, though the API
+  # health check sequences startup nicely.
   dashboard:
     build:
       context: .
