@@ -1,22 +1,63 @@
 # SaaS Customer Churn Prediction Platform
 
 ![CI Pipeline](https://github.com/YOUR_USERNAME/saas-churn-prediction/actions/workflows/ci.yml/badge.svg)
+![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-> An end-to-end machine learning system that predicts which SaaS customers are at risk of cancelling their subscriptions, estimates the revenue at risk, and provides actionable insights — served as a production-ready REST API with an interactive dashboard, fully containerised with Docker and tested via CI/CD.
+An end-to-end machine learning system that predicts which SaaS customers are likely to cancel their subscriptions, quantifies the revenue exposure, and surfaces the findings through a REST API and an interactive dashboard. The full stack runs with a single `docker compose up` command and is validated by an automated CI pipeline on every push.
+
+---
+
+## Table of Contents
+
+- [The Business Problem](#the-business-problem)
+- [What This Project Demonstrates](#what-this-project-demonstrates)
+- [Quick Start](#quick-start)
+- [System Architecture](#system-architecture)
+- [Project Structure](#project-structure)
+- [Results](#results)
+- [API Usage](#api-usage)
+- [Dashboard](#dashboard)
+- [Technology Stack](#technology-stack)
+- [Documentation](#documentation)
+- [Roadmap](#roadmap)
+- [License](#license)
 
 ---
 
 ## The Business Problem
 
-Subscription-based software companies lose significant revenue when customers cancel — a process known as **churn**. Acquiring new customers costs 5–25x more than retaining existing ones, making churn prediction one of the highest-ROI applications of machine learning in business.
+Subscription businesses lose meaningful revenue every time a customer cancels. Industry benchmarks suggest that acquiring a new customer costs anywhere from five to twenty-five times more than retaining an existing one, which makes early identification of at-risk customers one of the highest-leverage applications of machine learning in a SaaS company.
 
-This project builds a complete churn prediction system that a customer success team could actually use: from raw data ingestion and feature engineering, through model training and evaluation, to a REST API for real-time predictions and an interactive dashboard for business stakeholders.
+The challenge is not just building a model that classifies churners with reasonable accuracy. The hard part is delivering something a customer success team can actually use: predictions that are explainable, scored against business-relevant thresholds, prioritized by revenue exposure, and accessible through tools that non-engineers can navigate.
+
+This project tackles the full problem end-to-end.
+
+---
+
+## What This Project Demonstrates
+
+| Capability | Where to look |
+|---|---|
+| Relational data modeling and SQL feature engineering | `src/sql/`, `src/data/feature_engineering.py` |
+| ETL pipeline with reproducible synthetic data generation | `src/data/ingest.py`, `src/data/generate_synthetic.py` |
+| Multi-model comparison with experiment tracking | `src/models/train.py` (MLflow integration) |
+| Threshold optimization based on business cost | `src/models/train.py`, `docs/modeling.md` |
+| Model explainability with SHAP | `src/models/evaluate.py` |
+| Revenue impact estimation in financial terms | `src/models/train.py` |
+| Production-style REST API with validation and testing | `api/`, `tests/test_api.py` |
+| Interactive dashboard for non-technical stakeholders | `dashboard/app.py` |
+| Multi-service containerization | `docker-compose.yml`, `api/Dockerfile`, `dashboard/Dockerfile` |
+| Continuous integration with linting and testing | `.github/workflows/ci.yml` |
+| Reproducible workflow automation | `Makefile`, `notebooks/` |
 
 ---
 
 ## Quick Start
 
-### Option 1: Docker (recommended — one command)
+### Option 1: Docker (recommended)
+
+The fastest way to see everything running. Requires Docker Desktop.
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/saas-churn-prediction.git
@@ -24,119 +65,193 @@ cd saas-churn-prediction
 docker compose up --build
 ```
 
-Then open:
-- **Dashboard:** http://localhost:8501
-- **API Docs:** http://localhost:8000/docs
+When the containers report healthy:
 
-### Option 2: Local (no Docker)
+- Dashboard: <http://localhost:8501>
+- API documentation (Swagger UI): <http://localhost:8000/docs>
+- PostgreSQL: `localhost:5432` (user `churn_user`, password `churn_pass`, database `saas_churn`)
+
+Stop everything with `docker compose down`. Add `-v` to also wipe the database volume.
+
+### Option 2: Local Python (no Docker)
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/saas-churn-prediction.git
 cd saas-churn-prediction
 pip install -r requirements.txt
 
-# Run the data pipeline
+# Run the data pipeline (writes to a local SQLite database)
 python -m src.data.ingest
 python -m src.data.generate_synthetic
 python -m src.data.feature_engineering
 
-# Start the API
+# Train the model
+python -m src.models.train
+python -m src.models.evaluate
+python -m src.models.predict
+
+# Start the API (terminal 1)
 uvicorn api.main:app --reload --port 8000
 
-# Start the dashboard (separate terminal)
+# Start the dashboard (terminal 2)
 pip install -r dashboard/requirements.txt
 streamlit run dashboard/app.py
 ```
 
 ### Option 3: Google Colab
 
-Open the notebooks in the `notebooks/` folder — each one mounts Google Drive and runs the full pipeline interactively.
+Every notebook in `notebooks/` is Colab-ready. Each one mounts Google Drive, navigates to the project directory, installs dependencies, and runs the relevant stage. Open them in order:
 
----
-
-## Dashboard Preview
-
-![Dashboard Overview](docs/screenshots/dashboard_overview.png)
-![Customer Drilldown](docs/screenshots/customer_drilldown.png)
+1. `01_full_pipeline.ipynb` — data pipeline plus model training and evaluation
+2. `02_fastapi_serving.ipynb` — API walkthrough using FastAPI's TestClient
+3. `03_dashboard_demo.ipynb` — inline preview of the dashboard's charts
+4. `04_docker_cicd.ipynb` — Docker and CI configuration walkthrough
 
 ---
 
 ## System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         DATA LAYER                               │
-│  Kaggle CSV → Python ingestion → SQLite/PostgreSQL               │
-│  Synthetic engagement data → SQL feature engineering (45 features)│
-└──────────────────────────┬──────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                         DATA LAYER                                   │
+│  Raw CSV  →  Python ingestion  →  SQLite / PostgreSQL               │
+│  Synthetic engagement + support data                                 │
+│  SQL feature engineering (CTEs, window functions)  →  45 features    │
+└──────────────────────────┬──────────────────────────────────────────┘
                            │
                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      MODEL TRAINING                              │
-│  3-model comparison (Logistic Regression, Random Forest, XGBoost)│
-│  MLflow tracking · SHAP explainability · Threshold optimisation  │
-│  Revenue impact analysis · Batch scoring                         │
-└──────────────────────────┬──────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                       MODELING LAYER                                 │
+│  Multi-model comparison:  Logistic Regression / Random Forest / XGB  │
+│  MLflow experiment tracking · SHAP explainability                    │
+│  F1-optimized threshold · Revenue impact estimation                  │
+│  Batch scoring with critical / high / medium / low risk tiers        │
+└──────────────────────────┬──────────────────────────────────────────┘
                            │
                            ▼
-┌──────────────────────────┴──────────────────────────────────────┐
-│  ┌─────────────────────┐       ┌──────────────────────────┐     │
-│  │    FastAPI Service   │       │   Streamlit Dashboard    │     │
-│  │  POST /predict       │       │  KPI cards & risk charts │     │
-│  │  POST /predict/batch │       │  Customer drilldown      │     │
-│  │  GET /health         │       │  Revenue at risk         │     │
-│  │  Swagger docs at     │       │  CSV export for CRM      │     │
-│  │  /docs               │       │  Sidebar filters         │     │
-│  └─────────────────────┘       └──────────────────────────┘     │
-│                                                                  │
-│         All containerised via Docker Compose + CI/CD             │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────┴──────────────────────────────────────────┐
+│  ┌─────────────────────┐         ┌──────────────────────────┐       │
+│  │    FastAPI Service   │         │   Streamlit Dashboard    │       │
+│  │  POST /predict       │         │  KPI cards & risk charts │       │
+│  │  POST /predict/batch │         │  Customer drilldown      │       │
+│  │  GET  /health        │         │  Revenue at risk view    │       │
+│  │  /docs (Swagger)     │         │  CSV export for CRM use  │       │
+│  └─────────────────────┘         └──────────────────────────┘       │
+│                                                                      │
+│         All services containerized · CI runs on every push           │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+For a deeper architectural walkthrough see [`docs/architecture.md`](docs/architecture.md).
+
+---
+
+## Project Structure
+
+```
+saas-churn-prediction/
+│
+├── api/                              FastAPI prediction service
+│   ├── main.py                       Application entry point and endpoints
+│   ├── schemas.py                    Pydantic request and response models
+│   ├── Dockerfile                    Container definition
+│   └── requirements.txt              Service-specific dependencies
+│
+├── dashboard/                        Streamlit interactive dashboard
+│   ├── app.py                        Dashboard application
+│   ├── Dockerfile                    Container definition
+│   └── requirements.txt              Service-specific dependencies
+│
+├── data/
+│   ├── raw/                          Raw CSV (excluded from git, see Setup)
+│   └── processed/                    Engineered features and scored customers
+│
+├── docs/                             Detailed component documentation
+│   ├── architecture.md               System architecture and design choices
+│   ├── data_pipeline.md              Data layer walkthrough
+│   ├── modeling.md                   Model training and evaluation approach
+│   ├── api_service.md                API endpoints, validation, and testing
+│   ├── dashboard.md                  Dashboard features and usage
+│   └── screenshots/                  Dashboard screenshots used in this README
+│
+├── models/                           Trained artifacts (excluded from git)
+│   ├── best_model.joblib             Serialized winning model
+│   ├── scaler.joblib                 Fitted feature scaler
+│   ├── model_metadata.joblib         Threshold, metrics, revenue impact
+│   └── plots/                        Generated evaluation visualizations
+│
+├── notebooks/                        Colab-compatible Jupyter notebooks
+│   ├── 01_full_pipeline.ipynb        Data pipeline + training + evaluation
+│   ├── 02_fastapi_serving.ipynb      API walkthrough
+│   ├── 03_dashboard_demo.ipynb       Dashboard charts preview
+│   └── 04_docker_cicd.ipynb          Containerization and CI walkthrough
+│
+├── src/                              Core library
+│   ├── config.py                     Centralized paths and settings
+│   ├── db.py                         Database engine factory
+│   ├── data/
+│   │   ├── ingest.py                 Raw data ingestion and schema reshaping
+│   │   ├── generate_synthetic.py     Synthetic engagement and support data
+│   │   └── feature_engineering.py    SQL + Python feature pipeline
+│   ├── models/
+│   │   ├── train.py                  Training pipeline with MLflow
+│   │   ├── evaluate.py               Metrics, plots, SHAP explanations
+│   │   └── predict.py                Batch scoring with risk levels
+│   └── sql/
+│       ├── init.sql                  PostgreSQL schema definition
+│       └── features.sql              Feature engineering queries
+│
+├── tests/
+│   └── test_api.py                   Eighteen automated API tests
+│
+├── .github/workflows/
+│   └── ci.yml                        Lint and test on every push
+│
+├── docker-compose.yml                Full stack orchestration
+├── .dockerignore                     Files excluded from container builds
+├── .gitignore                        Files excluded from version control
+├── Makefile                          Common development commands
+├── ruff.toml                         Linter configuration
+├── requirements.txt                  Top-level Python dependencies
+├── LICENSE                           MIT License
+├── CONTRIBUTING.md                   Notes for anyone forking the project
+└── README.md                         This file
 ```
 
 ---
 
-## Skills Demonstrated
-
-| Skill Area | What This Project Shows |
-|---|---|
-| **Data Engineering** | SQL feature engineering (CTEs, window functions, joins), ETL pipeline, database design |
-| **Machine Learning** | Multi-model comparison, hyperparameter awareness, threshold optimisation |
-| **MLOps** | MLflow experiment tracking, model serialisation, reproducible training |
-| **Explainability** | SHAP values (global + local), feature importance, risk factor extraction |
-| **API Development** | FastAPI REST endpoints, Pydantic validation, Swagger docs, automated tests |
-| **Data Visualisation** | Streamlit dashboard, Plotly interactive charts, KPI cards |
-| **DevOps** | Docker Compose (3-service stack), GitHub Actions CI, Makefile automation |
-| **Software Engineering** | Modular architecture, pytest, clean code, comprehensive documentation |
-
----
-
-## Results Summary
+## Results
 
 | Metric | Value |
 |---|---|
-| Best Model | Logistic Regression (or XGBoost depending on run) |
-| Recall (churners caught) | ~82% |
-| Precision | ~65% |
-| F1 Score | ~0.72 |
-| Total MRR at Risk | £5,300+ monthly |
-| Estimated Annual Savings | £64,000+ |
-| Features Engineered | 45 |
-| API Tests | 18 passing |
-| Risk Levels | Critical / High / Medium / Low |
+| Customers in the dataset | 7,043 |
+| Engineered features | 45 |
+| Best-performing model | Logistic Regression (winner varies slightly between runs) |
+| Recall on the churn class | ~82% |
+| Precision on the churn class | ~65% |
+| F1 score on the churn class | ~0.72 |
+| ROC-AUC | ~0.85 |
+| Monthly recurring revenue at risk (identified) | £5,300+ |
+| Estimated annual savings (20% intervention success rate) | £64,000+ |
+| API endpoints | 3 (`/health`, `/predict`, `/predict/batch`) |
+| Automated API tests | 18 |
+
+Exact figures will vary slightly between runs because synthetic engagement data is generated with a fixed seed but downstream cross-validation and threshold optimization can shift the winning model. The `model_metadata.joblib` file always reflects the most recent run.
 
 ---
 
-## API — Serving Predictions
+## API Usage
 
-The FastAPI service exposes three endpoints:
+The API exposes three endpoints. Full documentation, including the interactive Swagger UI, is auto-generated and available at `/docs` when the API is running.
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/health` | Service status and model info |
-| `POST` | `/predict` | Single customer churn prediction |
-| `POST` | `/predict/batch` | Batch predictions (up to 1000 customers) |
+### Health check
 
-**Example request:**
+```bash
+curl http://localhost:8000/health
+```
+
+### Single prediction
+
 ```bash
 curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
@@ -148,7 +263,8 @@ curl -X POST http://localhost:8000/predict \
   }'
 ```
 
-**Example response:**
+Response:
+
 ```json
 {
   "churn_probability": 0.87,
@@ -159,162 +275,82 @@ curl -X POST http://localhost:8000/predict \
 }
 ```
 
-Interactive Swagger documentation available at http://localhost:8000/docs.
+### Batch prediction
+
+`POST /predict/batch` accepts up to 1000 customers per request and returns both individual predictions and aggregate revenue exposure. See [`docs/api_service.md`](docs/api_service.md) for the full schema.
 
 ---
 
-## Dashboard — Business Intelligence
+## Dashboard
 
-The Streamlit dashboard provides an interactive interface for customer success teams:
+The Streamlit dashboard turns model output into something a customer success team can use without writing any code. It includes:
 
-- **KPI cards** — total customers, predicted churners, churn rate, MRR at risk
-- **Risk distribution** — colour-coded bar chart by severity level
-- **Revenue at risk** — breakdown by risk category
-- **Probability distribution** — histogram with decision threshold line
-- **Customer drilldown** — individual risk profile with feature explorer
-- **High-risk table** — sortable, filterable, with CSV export for CRM integration
-- **Sidebar filters** — risk level, revenue range, probability range
+- Five KPI cards summarizing customer base health and revenue exposure
+- Risk-level distribution and revenue breakdown
+- Churn probability histogram with the model's decision threshold overlaid
+- Revenue versus probability scatter plot for spotting high-value at-risk accounts
+- Individual customer drilldown with a feature-level explanation
+- Downloadable CSV of the high-risk customer list, ready for CRM import
+- Sidebar filters for risk level, revenue range, and probability range
+
+Screenshots live in `docs/screenshots/` and are referenced in [`docs/dashboard.md`](docs/dashboard.md).
 
 ---
 
 ## Technology Stack
 
-| Technology | Purpose |
+| Layer | Tools |
 |---|---|
-| **Python** | Core programming language |
-| **SQL (SQLite / PostgreSQL)** | Data storage and feature engineering |
-| **pandas / NumPy** | Data manipulation and analysis |
-| **scikit-learn** | Machine learning pipeline and preprocessing |
-| **XGBoost** | Gradient boosted tree model |
-| **MLflow** | Experiment tracking and model registry |
-| **SHAP** | Model explainability |
-| **FastAPI** | REST API for model serving |
-| **Pydantic** | Request/response validation |
-| **Streamlit** | Interactive business dashboard |
-| **Plotly** | Interactive data visualisations |
-| **pytest** | Automated testing (18 tests) |
-| **Docker / Docker Compose** | Full stack containerisation |
-| **GitHub Actions** | CI/CD pipeline (lint + test) |
-| **Ruff** | Python linter |
-| **Make** | Build automation |
-| **Git / GitHub** | Version control |
-
----
-
-## Project Structure
-
-```
-saas-churn-prediction/
-│
-├── api/                          # FastAPI prediction service
-│   ├── __init__.py
-│   ├── main.py                   # API endpoints (/health, /predict, /predict/batch)
-│   ├── schemas.py                # Pydantic request/response models
-│   ├── Dockerfile                # API container definition
-│   └── requirements.txt          # API-specific dependencies
-│
-├── dashboard/                    # Streamlit interactive dashboard
-│   ├── app.py                    # Main dashboard application
-│   ├── Dockerfile                # Dashboard container definition
-│   └── requirements.txt          # Dashboard dependencies
-│
-├── data/
-│   ├── raw/                      # Original Kaggle CSV
-│   └── processed/                # Engineered features and scored customers
-│       ├── features.csv
-│       └── scored_customers.csv
-│
-├── docs/                         # Project documentation
-│   ├── screenshots/              # Dashboard screenshots
-│   ├── architecture.md           # Technical architecture and decisions
-│   ├── data_pipeline.md          # Data layer documentation
-│   ├── modelling.md              # Model training and evaluation
-│   ├── api_service.md            # API documentation
-│   └── dashboard.md              # Dashboard documentation
-│
-├── models/                       # Trained model artifacts
-│   ├── best_model.joblib
-│   ├── scaler.joblib
-│   ├── model_metadata.joblib
-│   └── plots/                    # Generated visualisations
-│
-├── notebooks/                    # Colab-compatible Jupyter notebooks
-│   ├── 01_full_pipeline.ipynb    # Data + modelling pipeline
-│   ├── 02_fastapi_serving.ipynb  # API demo and testing
-│   ├── 03_dashboard_demo.ipynb   # Dashboard charts preview
-│   └── 04_docker_cicd.ipynb      # Docker & CI/CD walkthrough
-│
-├── src/                          # Core Python source code
-│   ├── config.py                 # Project paths and settings
-│   ├── db.py                     # Database connection management
-│   ├── data/
-│   │   ├── ingest.py             # Raw data ingestion
-│   │   ├── generate_synthetic.py # Synthetic engagement data
-│   │   └── feature_engineering.py# SQL-based feature engineering
-│   ├── models/
-│   │   ├── train.py              # Model training with MLflow
-│   │   ├── evaluate.py           # Evaluation, SHAP, threshold tuning
-│   │   └── predict.py            # Batch scoring with risk levels
-│   └── sql/
-│       ├── init.sql              # Database schema
-│       └── features.sql          # Feature engineering queries
-│
-├── tests/
-│   └── test_api.py               # 18 automated API tests
-│
-├── .github/workflows/
-│   └── ci.yml                    # GitHub Actions CI pipeline
-│
-├── docker-compose.yml            # Full stack orchestration
-├── .dockerignore                 # Docker build exclusions
-├── Makefile                      # Common development commands
-├── ruff.toml                     # Linter configuration
-├── requirements.txt              # Python dependencies
-├── .gitignore                    # Git exclusions
-└── README.md                     # This file
-```
-
----
-
-## Roadmap
-
-- [x] Phase 1 — Data pipeline (ingestion, synthetic data, SQL feature engineering)
-- [x] Phase 2 — Modelling (training, evaluation, SHAP, revenue impact, batch scoring)
-- [x] Phase 3 — FastAPI REST API with tests, validation, and Swagger docs
-- [x] Phase 4 — Streamlit dashboard for customer success teams
-- [x] Phase 5 — Docker containerisation of the full stack
-- [x] Phase 6 — CI/CD with GitHub Actions
+| Language | Python 3.10 |
+| Data storage | SQLite (local) / PostgreSQL 16 (Docker) |
+| Data processing | pandas, NumPy, SQLAlchemy |
+| Machine learning | scikit-learn, XGBoost |
+| Experiment tracking | MLflow |
+| Explainability | SHAP |
+| API framework | FastAPI, Pydantic, Uvicorn |
+| Dashboard | Streamlit, Plotly |
+| Testing | pytest, FastAPI TestClient |
+| Linting | Ruff |
+| Containerization | Docker, Docker Compose |
+| CI/CD | GitHub Actions |
+| Automation | Make |
+| Version control | Git, GitHub |
 
 ---
 
 ## Documentation
 
-Detailed documentation for each component:
+Each major component has its own detailed write-up under `docs/`:
 
-- [Data Pipeline](docs/data_pipeline.md) — how raw data becomes 45 predictive features
-- [Modelling Approach](docs/modelling.md) — model selection, evaluation, threshold tuning, SHAP
-- [API Service](docs/api_service.md) — endpoints, validation, testing, running locally and in Colab
-- [Dashboard](docs/dashboard.md) — dashboard sections, filters, design decisions
-- [Technical Architecture](docs/architecture.md) — system design and architectural decisions
-
----
-
-## Future Improvements
-
-- Model retraining pipeline with data drift detection
-- Add authentication and rate limiting to the API
-- A/B testing framework for churn intervention strategies
-- Real-time streaming predictions with Kafka
-- Model monitoring and alerting
+- [`docs/architecture.md`](docs/architecture.md) — system design, layer responsibilities, and the rationale behind key decisions
+- [`docs/data_pipeline.md`](docs/data_pipeline.md) — how raw data becomes 45 features
+- [`docs/modeling.md`](docs/modeling.md) — model selection, evaluation, threshold tuning, and SHAP analysis
+- [`docs/api_service.md`](docs/api_service.md) — endpoints, validation, testing, and running locally
+- [`docs/dashboard.md`](docs/dashboard.md) — dashboard sections, filters, and design choices
 
 ---
 
-## Author
+## Roadmap
 
-Built as part of a portfolio demonstrating end-to-end data science and ML engineering skills for UK graduate roles.
+The platform was built in six phases, each committed as its own milestone:
+
+- [x] Phase 1 — Data pipeline with SQL feature engineering
+- [x] Phase 2 — Multi-model training, evaluation, SHAP, batch scoring
+- [x] Phase 3 — FastAPI service with validation and tests
+- [x] Phase 4 — Streamlit dashboard
+- [x] Phase 5 — Full-stack Docker Compose setup
+- [x] Phase 6 — GitHub Actions CI pipeline
+
+Possible future extensions:
+
+- Scheduled retraining with data drift detection
+- API authentication and rate limiting
+- A/B testing framework for retention interventions
+- Streaming predictions via Kafka
+- Production monitoring and alerting on model performance drift
 
 ---
 
-## Licence
+## License
 
-This project is for portfolio and educational purposes. The underlying dataset is sourced from Kaggle under its terms of use.
+Released under the [MIT License](LICENSE). The underlying Telco Customer Churn dataset is sourced from Kaggle under its own terms of use.

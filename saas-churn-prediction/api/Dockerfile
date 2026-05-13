@@ -1,31 +1,32 @@
+# API service container.
+# Build context is the project root, so paths in COPY are relative to it.
 FROM python:3.10-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# System dependencies needed to install some Python packages from source.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
+        build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy and install Python dependencies
-COPY dashboard/requirements.txt /app/dashboard/requirements.txt
-RUN pip install --no-cache-dir -r dashboard/requirements.txt
+# Install Python dependencies. Copy requirements first so dependency
+# installation can be cached across rebuilds when only source changes.
+COPY requirements.txt /app/requirements.txt
+COPY api/requirements.txt /app/api/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt && \
+    pip install --no-cache-dir -r /app/api/requirements.txt
 
-# Copy dashboard code and data
-COPY dashboard/ /app/dashboard/
+# Copy the application code and the trained model artifacts.
+COPY src/ /app/src/
+COPY api/ /app/api/
 COPY models/ /app/models/
-COPY data/processed/ /app/data/processed/
 
-# Expose Streamlit port
-EXPOSE 8501
+# FastAPI's default port.
+EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')"
+# Container-level health check used by Docker Compose for ordered startup.
+HEALTHCHECK --interval=15s --timeout=10s --retries=3 --start-period=10s \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
 
-# Run Streamlit (disable CORS and XSRF for Docker networking)
-CMD ["streamlit", "run", "dashboard/app.py", \
-     "--server.port=8501", \
-     "--server.address=0.0.0.0", \
-     "--server.headless=true", \
-     "--browser.gatherUsageStats=false"]
+# Start the API with Uvicorn.
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]

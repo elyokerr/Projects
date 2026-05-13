@@ -1,20 +1,22 @@
-[tool.ruff]
+# Ruff linter configuration.
+# See https://docs.astral.sh/ruff/ for the full reference.
+
 target-version = "py310"
 line-length = 120
 fix = true
 
-[tool.ruff.lint]
+[lint]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
     "F",   # pyflakes
-    "I",   # isort (import sorting)
+    "I",   # import sorting
     "UP",  # pyupgrade
 ]
 ignore = [
-    "E501",  # line too long (handled by line-length above)
-    "E402",  # module-level import not at top (needed for Colab path setup)
+    "E501",  # Line too long; line-length is configured above
+    "E402",  # Module-level import not at top; needed for Colab path setup
 ]
 
-[tool.ruff.lint.isort]
+[lint.isort]
 known-first-party = ["src", "api"]

@@ -13,7 +13,7 @@ __pycache__
 .vscode
 .idea
 
-# Notebooks (not needed in containers)
+# Notebooks (not needed at runtime in containers)
 notebooks/
 *.ipynb
 
@@ -29,7 +29,7 @@ docs/
 .DS_Store
 Thumbs.db
 
-# Environment
+# Local environments
 .env
 .venv
 venv/

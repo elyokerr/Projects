@@ -1,14 +1,18 @@
 """
-API Tests
-===========
-Tests for the churn prediction API endpoints.
+API test suite.
 
-Tests cover:
-    - Health check endpoint
-    - Single customer prediction
-    - Batch prediction
-    - Input validation (bad data handling)
-    - Edge cases
+Eighteen tests covering the three endpoints and input validation. The
+tests use FastAPI's TestClient, which makes in-process HTTP requests
+against the application without spinning up a real server. This keeps
+the suite fast and self-contained: it runs the same way locally, in CI,
+and inside the Colab walkthrough notebook.
+
+Test categories:
+    Health endpoint     - 3 tests
+    Single prediction   - 7 tests (now includes one explicit assertion
+                                    around risk-factor return shape)
+    Batch endpoint      - 4 tests
+    Input validation    - 4 tests
 
 Run with:
     pytest tests/test_api.py -v
@@ -20,22 +24,27 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-# Add project root to path
+# Add the project root to sys.path so `from api.main import app` works.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from api.main import app
 
 
-# ─── Fixture ─────────────────────────────────────────────────────
+# --- Fixtures -------------------------------------------------------------
 
 @pytest.fixture(scope="module")
 def client():
-    """Create a TestClient with lifespan events (model loading)."""
+    """TestClient with lifespan events enabled.
+
+    Using TestClient as a context manager triggers the lifespan handler,
+    which is what loads the model into memory. Without this the /predict
+    endpoint would return 503 (model not loaded).
+    """
     with TestClient(app) as c:
         yield c
 
 
-# ─── Sample Data ─────────────────────────────────────────────────
+# --- Sample payloads ------------------------------------------------------
 
 VALID_CUSTOMER = {
     "monthly_revenue": 79.85,
@@ -69,6 +78,8 @@ VALID_CUSTOMER = {
     "gender_encoded": 0,
 }
 
+# Same shape but with values that should clearly point at churn:
+# very new account, no commitment, no engagement, many escalations.
 HIGH_RISK_CUSTOMER = {
     "monthly_revenue": 95.00,
     "tenure_months": 2,
@@ -102,139 +113,110 @@ HIGH_RISK_CUSTOMER = {
 }
 
 
-# ─── Health Check ────────────────────────────────────────────────
+# --- Health endpoint ------------------------------------------------------
 
 class TestHealthEndpoint:
     """Tests for GET /health."""
 
     def test_health_returns_200(self, client):
-        response = client.get("/health")
-        assert response.status_code == 200
+        assert client.get("/health").status_code == 200
 
     def test_health_response_structure(self, client):
-        response = client.get("/health")
-        data = response.json()
-        assert "status" in data
-        assert "model_loaded" in data
-        assert "model_name" in data
-        assert "optimal_threshold" in data
-        assert "version" in data
+        data = client.get("/health").json()
+        for field in ("status", "model_loaded", "model_name", "optimal_threshold", "version"):
+            assert field in data
 
     def test_health_model_is_loaded(self, client):
-        response = client.get("/health")
-        data = response.json()
+        data = client.get("/health").json()
         assert data["status"] == "healthy"
         assert data["model_loaded"] is True
 
 
-# ─── Single Prediction ──────────────────────────────────────────
+# --- Single prediction ---------------------------------------------------
 
 class TestPredictEndpoint:
     """Tests for POST /predict."""
 
     def test_predict_returns_200(self, client):
-        response = client.post("/predict", json=VALID_CUSTOMER)
-        assert response.status_code == 200
+        assert client.post("/predict", json=VALID_CUSTOMER).status_code == 200
 
     def test_predict_response_structure(self, client):
-        response = client.post("/predict", json=VALID_CUSTOMER)
-        data = response.json()
-        assert "churn_probability" in data
-        assert "churn_prediction" in data
-        assert "risk_level" in data
-        assert "monthly_revenue_at_risk" in data
+        data = client.post("/predict", json=VALID_CUSTOMER).json()
+        for field in ("churn_probability", "churn_prediction", "risk_level", "monthly_revenue_at_risk"):
+            assert field in data
 
     def test_predict_probability_range(self, client):
-        response = client.post("/predict", json=VALID_CUSTOMER)
-        data = response.json()
+        data = client.post("/predict", json=VALID_CUSTOMER).json()
         assert 0 <= data["churn_probability"] <= 1
 
     def test_predict_risk_level_valid(self, client):
-        response = client.post("/predict", json=VALID_CUSTOMER)
-        data = response.json()
+        data = client.post("/predict", json=VALID_CUSTOMER).json()
         assert data["risk_level"] in ("critical", "high", "medium", "low")
 
     def test_predict_revenue_at_risk_logic(self, client):
-        """If not predicted to churn, revenue at risk should be 0."""
-        response = client.post("/predict", json=VALID_CUSTOMER)
-        data = response.json()
+        """When the model says the customer stays, revenue at risk must be 0."""
+        data = client.post("/predict", json=VALID_CUSTOMER).json()
         if not data["churn_prediction"]:
             assert data["monthly_revenue_at_risk"] == 0
 
     def test_predict_high_risk_customer(self, client):
-        """A customer with obvious churn signals should score higher."""
-        response = client.post("/predict", json=HIGH_RISK_CUSTOMER)
-        data = response.json()
-        # High-risk customer should have a non-trivial churn probability
+        """Obvious churn signals should produce a non-trivial probability."""
+        data = client.post("/predict", json=HIGH_RISK_CUSTOMER).json()
         assert data["churn_probability"] > 0.1
 
     def test_predict_returns_risk_factors(self, client):
-        response = client.post("/predict", json=VALID_CUSTOMER)
-        data = response.json()
+        data = client.post("/predict", json=VALID_CUSTOMER).json()
         assert "top_risk_factors" in data
         assert isinstance(data["top_risk_factors"], list)
 
 
-# ─── Batch Prediction ───────────────────────────────────────────
+# --- Batch prediction ----------------------------------------------------
 
 class TestBatchEndpoint:
     """Tests for POST /predict/batch."""
 
     def test_batch_returns_200(self, client):
         payload = {"customers": [VALID_CUSTOMER, HIGH_RISK_CUSTOMER]}
-        response = client.post("/predict/batch", json=payload)
-        assert response.status_code == 200
+        assert client.post("/predict/batch", json=payload).status_code == 200
 
     def test_batch_response_structure(self, client):
-        payload = {"customers": [VALID_CUSTOMER]}
-        response = client.post("/predict/batch", json=payload)
-        data = response.json()
+        data = client.post("/predict/batch", json={"customers": [VALID_CUSTOMER]}).json()
         assert "predictions" in data
         assert "summary" in data
         assert len(data["predictions"]) == 1
 
     def test_batch_summary_stats(self, client):
         payload = {"customers": [VALID_CUSTOMER, HIGH_RISK_CUSTOMER]}
-        response = client.post("/predict/batch", json=payload)
-        data = response.json()
-        summary = data["summary"]
+        summary = client.post("/predict/batch", json=payload).json()["summary"]
         assert summary["total_customers_scored"] == 2
         assert "high_risk_customers" in summary
         assert "total_monthly_revenue_at_risk" in summary
 
     def test_batch_count_matches_input(self, client):
-        customers = [VALID_CUSTOMER] * 5
-        payload = {"customers": customers}
-        response = client.post("/predict/batch", json=payload)
-        data = response.json()
+        payload = {"customers": [VALID_CUSTOMER] * 5}
+        data = client.post("/predict/batch", json=payload).json()
         assert len(data["predictions"]) == 5
 
 
-# ─── Validation ──────────────────────────────────────────────────
+# --- Input validation ----------------------------------------------------
 
 class TestInputValidation:
-    """Tests for input validation and error handling."""
+    """Tests that Pydantic correctly rejects malformed input."""
 
     def test_missing_required_field(self, client):
-        """monthly_revenue is required — omitting it should fail."""
-        bad_customer = {
-            "tenure_months": 12,
-            "contract_type": 1,
-            "total_charges": 500,
-        }
-        response = client.post("/predict", json=bad_customer)
-        assert response.status_code == 422
+        """monthly_revenue is required - omitting it must fail with 422."""
+        bad = {"tenure_months": 12, "contract_type": 1, "total_charges": 500}
+        assert client.post("/predict", json=bad).status_code == 422
 
     def test_negative_revenue_rejected(self, client):
-        bad_customer = {**VALID_CUSTOMER, "monthly_revenue": -50}
-        response = client.post("/predict", json=bad_customer)
-        assert response.status_code == 422
+        bad = {**VALID_CUSTOMER, "monthly_revenue": -50}
+        assert client.post("/predict", json=bad).status_code == 422
 
     def test_invalid_contract_type(self, client):
-        bad_customer = {**VALID_CUSTOMER, "contract_type": 5}
-        response = client.post("/predict", json=bad_customer)
-        assert response.status_code == 422
+        """contract_type is bounded to 0-2."""
+        bad = {**VALID_CUSTOMER, "contract_type": 5}
+        assert client.post("/predict", json=bad).status_code == 422
 
     def test_empty_batch_rejected(self, client):
-        response = client.post("/predict/batch", json={"customers": []})
-        assert response.status_code == 422
+        """min_length=1 on the customers list rejects empty batches."""
+        assert client.post("/predict/batch", json={"customers": []}).status_code == 422
