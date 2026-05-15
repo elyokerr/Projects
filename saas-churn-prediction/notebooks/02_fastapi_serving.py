@@ -484,13 +484,7 @@ print(resp.status_code, resp.json())
 - **Docker** — Containerised deployment
 - **REST API design** — Proper HTTP methods, status codes, error handling
 
-### What a hiring manager sees
 
-- The candidate can take a trained model and make it **accessible to other systems**
-- The API has **proper input validation** — it doesn't blindly accept bad data
-- There are **automated tests** — the candidate thinks about reliability
-- The API is **containerised** — ready for deployment
-- The **documentation is auto-generated** — professional engineering practice
 
 ### Running the API locally (outside Colab)
 
