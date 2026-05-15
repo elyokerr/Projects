@@ -1,4 +1,4 @@
-# Urban Jungle — Lowest-Price Home Insurance Quote Estimator
+# Lowest-Price Home Insurance Quote Estimator
 
 > **Take-home data task — Round 2 interview submission**
 > Predicting the **lowest** premium a panel of insurers would offer for a given home-insurance quote, from the customer's input circumstances alone.
