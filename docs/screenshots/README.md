@@ -4,6 +4,10 @@
 > Predicting the **lowest** premium a panel of insurers would offer for a given home-insurance quote, from the customer's input circumstances alone.
 
 > **Version 2** — fully rewritten notebook with honest validation, hyperparameter tuning, prediction intervals, SHAP explanations, and a deployable inference function. See [v1 → v2 changes](#v1--v2-changes) for a full diff.
+>
+> **Interactive demo** — a Streamlit web app (`app.py`) ships with the project. See [Section 11 — Interactive web app](#11-interactive-web-app) for a one-command launch.
+>
+> **Fully portable** — the project runs unchanged from a downloaded ZIP. No Google Drive, no manual path edits, no extra setup. See [`HOW_TO_RUN.md`](HOW_TO_RUN.md) for a complete step-by-step guide.
 
 ---
 
@@ -19,7 +23,8 @@
 8. [Assumptions](#8-assumptions)
 9. [Limitations & next steps](#9-limitations--next-steps)
 10. [How to reproduce](#10-how-to-reproduce)
-11. [v1 → v2 changes](#v1--v2-changes)
+11. [Interactive web app](#11-interactive-web-app)
+12. [v1 → v2 changes](#v1--v2-changes)
 
 ---
 
@@ -57,18 +62,23 @@ The task is framed as a **regression problem**: given a subset of input circumst
 
 ## 3. Tech stack
 
-| Layer | Tool |
-|---|---|
-| Language | **Python 3.12** |
-| Notebook | Jupyter / **Google Colab** |
-| Data wrangling | **pandas 2.2**, **numpy 2.0**, **scipy 1.16** |
-| Modelling | **scikit-learn 1.6** — `Ridge`, `RandomForestRegressor`, `HistGradientBoostingRegressor`, `DummyRegressor` |
-| Validation | `KFold`, `GroupKFold`, `RandomizedSearchCV`, `train_test_split` |
-| Explainability | **SHAP**, `permutation_importance` |
-| Serialisation | **joblib** |
-| Plotting | **matplotlib 3.10**, **seaborn 0.13** |
+| Layer | Tool | Pinned version |
+|---|---|---|
+| Language | **Python** | 3.10 – 3.13 |
+| Notebook | **Jupyter** / **Google Colab** | jupyter ≥ 1.1, ipykernel ≥ 6.29 |
+| Numerical core | **NumPy** | ≥ 2.0, < 2.3 |
+| Data wrangling | **pandas** | ≥ 2.2, < 2.4 |
+| Scientific stack | **SciPy** | ≥ 1.13, < 1.16 |
+| Modelling | **scikit-learn** — `Ridge`, `RandomForestRegressor`, `HistGradientBoostingRegressor`, `DummyRegressor` | ≥ 1.6, < 1.8 |
+| Validation | `KFold`, `GroupKFold`, `RandomizedSearchCV`, `train_test_split` | (scikit-learn) |
+| Explainability | **SHAP**, `permutation_importance` | shap ≥ 0.46, < 0.50 |
+| Model serialisation | **joblib** | ≥ 1.4, < 1.6 |
+| Static plots | **matplotlib**, **seaborn** | matplotlib ≥ 3.10, < 3.12; seaborn ≥ 0.13, < 0.15 |
+| Interactive dashboard | **Streamlit** | ≥ 1.36, < 2.0 |
+| Interactive charts | **Plotly** | ≥ 5.22, < 6.0 |
 
-All versions are printed in the notebook's first cell and pinned in `requirements.txt`.
+Every dependency is pinned in `requirements.txt`. The runtime versions are also
+printed by the notebook's first cell so reviewers can confirm reproducibility.
 
 ---
 
@@ -77,11 +87,15 @@ All versions are printed in the notebook's first cell and pinned in `requirement
 ```
 Urban Jungle Task/
 ├── README.md                          <-- you are here
+├── HOW_TO_RUN.md                      <-- step-by-step run instructions
 ├── README.txt                         <-- original task brief
 ├── CHEAT_SHEET.md                     <-- one-page project summary for stakeholders
 ├── requirements.txt                   <-- pinned Python dependencies
 ├── UJ_datatask_prices.csv             <-- raw quote data (385k rows)
 ├── UJ_price_estimator.ipynb           <-- main analysis notebook (v2)
+├── app.py                             <-- Streamlit interactive demo app
+├── run_app.bat                        <-- one-click launcher (Windows)
+├── run_app.sh                         <-- one-click launcher (macOS/Linux)
 ├── plots/                             <-- generated visualisations (~12 plots)
 │   ├── 01_data_quality.png
 │   ├── 02_structural_eda.png
@@ -264,33 +278,45 @@ Trained point-estimate model + quantile heads serialised with `joblib` into a si
 
 ### Prioritised next steps
 
-1. **Streamlit demo** backed by the saved `joblib` bundle — highest-impact single addition for stakeholder engagement.
-2. **FastAPI inference service** + Dockerfile for production deployment.
-3. **External geographic features** (Police.uk crime API, Environment Agency flood risk).
-4. **Drift monitoring** with Evidently AI (input + prediction distribution tracking).
-5. **Conformal-prediction wrapper** for formal coverage guarantees on the quantile heads.
+1. **FastAPI inference service** + Dockerfile for production deployment.
+2. **External geographic features** (Police.uk crime API, Environment Agency flood risk).
+3. **Drift monitoring** with Evidently AI (input + prediction distribution tracking).
+4. **Conformal-prediction wrapper** for formal coverage guarantees on the quantile heads.
 
 ---
 
 ## 10. How to reproduce
 
-### Option A — Google Colab (recommended)
+> See [HOW_TO_RUN.md](HOW_TO_RUN.md) for a fully-detailed step-by-step guide
+> with troubleshooting.
 
-1. Upload `UJ_price_estimator.ipynb` and `UJ_datatask_prices.csv` to a folder named `Urban Jungle Task` inside your Google Drive's `MyDrive` root.
-2. Open the notebook in Colab.
-3. Run all cells. The first cell auto-detects Colab and mounts Drive.
-4. Total runtime ≈ 5 minutes.
+The project is **fully portable** — anyone can download the ZIP, extract it,
+install dependencies, and run everything. **No Google Drive mount, no manual
+path edits, and no additional configuration are needed.**
 
-### Option B — Local Jupyter
+### Quick start (local — recommended)
 
 ```bash
+# 1. Extract the ZIP and enter the folder
+cd "Urban Jungle Task"
+
+# 2. Install dependencies (one-time)
 pip install -r requirements.txt
+
+# 3a. Run the notebook
 jupyter notebook UJ_price_estimator.ipynb
+
+# 3b. ...or launch the interactive dashboard
+streamlit run app.py
 ```
 
-The notebook auto-detects the local environment and uses the working directory for all paths. No code changes needed.
+### Quick start (Google Colab)
 
-### Using the trained model
+1. Open Colab → **File → Upload notebook** → choose `UJ_price_estimator.ipynb`.
+2. In the Colab left sidebar, click the **Files** icon and upload `UJ_datatask_prices.csv`.
+3. **Run all cells.** The first cell auto-detects Colab and reads the uploaded CSV directly from `/content/`. No Drive mount required.
+
+### Using the trained model programmatically
 
 ```python
 import joblib
@@ -300,6 +326,76 @@ bundle = joblib.load('artifacts/uj_price_estimator_bundle.joblib')
 
 # Or use the predict_lowest_price() function defined in the notebook
 ```
+
+### Why the project is portable
+
+- **Auto-detection of environment** (Colab vs local) in the first notebook cell.
+- **All paths derived from `Path.cwd()` / notebook directory** — never hard-coded.
+- **No Google Drive mount in the default path** — only an opt-in fallback (`os.environ['UJ_USE_DRIVE'] = '1'`) for the original author's workflow.
+- **`requirements.txt` ships with pinned dependency ranges** to guarantee a working install.
+- **The Streamlit app trains the model on first run** from the CSV — no pre-existing artefact required.
+
+---
+
+## 11. Interactive web app
+
+An interactive **Streamlit web app** (`app.py`) is included to demonstrate the
+real-world usage of the price estimator. It simulates how a customer-facing UI
+or internal pricing tool would consume the trained model.
+
+### Features
+
+- **Customer profile form** — age, bedrooms, postcode, occupation, alarm & accidental-cover toggles
+- **Headline price + 80% confidence band** with a speedometer-style gauge
+- **Quick presets** — three sample customer profiles (young renter, family home, senior in affluent area)
+- **Market insights tab** — interactive charts comparing prices across bedrooms and postcodes
+- **Model card** — algorithm, hyperparameters, training stats, test-set metrics
+- **Honest validation panel** — shows the random-split vs group-split MAE gap
+
+### One-command launch
+
+**Windows:**
+```cmd
+run_app.bat
+```
+
+**macOS / Linux:**
+```bash
+./run_app.sh
+```
+
+**Or directly (any platform):**
+```bash
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+The app opens automatically in your browser at `http://localhost:8501`.
+
+### How it works
+
+- **First run** (~30 seconds): trains the HGB point-estimate model and the three
+  quantile heads from `UJ_datatask_prices.csv`, then saves the bundle to
+  `artifacts/uj_price_estimator_bundle.joblib`.
+- **Subsequent runs**: loads the cached bundle instantly via `@st.cache_resource`.
+- **No internet required** after the initial `pip install`.
+
+### Tech stack
+
+| Component | Tool |
+|---|---|
+| Web framework | **Streamlit** — the industry-standard ML demo framework |
+| Charts | **Plotly** — interactive gauge, band, and bar charts |
+| Model serving | **joblib**-loaded scikit-learn pipeline |
+| State | Streamlit's built-in `@cache_resource` decorator |
+
+### Production path
+
+This app simulates the customer-facing surface; a production deployment would
+typically wrap the same `predict_lowest_price()` function in a **FastAPI**
+service, containerise with **Docker**, and serve behind an authenticated
+gateway. The Streamlit demo is the fastest route from notebook to a tangible,
+stakeholder-demoable artefact.
 
 ---
 
@@ -313,7 +409,7 @@ bundle = joblib.load('artifacts/uj_price_estimator_bundle.joblib')
 | **Explainability** | Permutation importance only | + SHAP summary and per-prediction force plots |
 | **EDA depth** | 1 target histogram | Full data-quality audit, Q-Q plot, outlier scan, Spearman correlation, interaction heatmap |
 | **Feature engineering** | 6 features + area prefix | + outward postcode (standard UK insurance geo unit) |
-| **Code quality** | Hard-coded Colab path with typo | Portable auto-detection, `pathlib` throughout |
+| **Code quality** | Hard-coded Colab path with typo, mandatory Drive mount | Fully portable: auto-detects Colab vs local, no Drive mount in default path, `pathlib` throughout |
 | **Productionisation** | None | `joblib` bundle + `predict_lowest_price()` inference helper |
 | **Reproducibility** | Versions printed | + `requirements.txt` + all `random_state`s pinned |
 | **Visualisations** | 4 plots | ~12 plots covering all analysis stages |
