@@ -1,0 +1,9 @@
+# Large data file (>100MB GitHub limit)
+UJ_datatask_prices.csv
+
+# Python cache
+__pycache__/
+*.pyc
+
+# IDE/tool config
+.claude/
