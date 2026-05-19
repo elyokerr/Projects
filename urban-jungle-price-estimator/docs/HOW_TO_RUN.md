@@ -1,8 +1,9 @@
 # HOW TO RUN - Price Estimator
 
-A fully self-contained, step-by-step guide. Anyone with a ZIP of this project
-can be up and running in under 5 minutes - no Google Drive, no manual path
-edits, no extra configuration.
+A step-by-step guide for cloning this project from the portfolio repo and
+running both the notebook and the Streamlit app locally. No Google Drive
+mount, no manual path edits — just clone, drop the raw CSV into
+`data/raw/`, install, and run.
 
 ---
 
@@ -58,29 +59,36 @@ each range.
 
 ## 3. Step-by-step: local setup (recommended)
 
-### 3.1 Extract the ZIP
+### 3.1 Clone the repo and place the raw CSV
 
-Unzip the project to any folder - for example:
-
-- **Windows:** `C:\Users\<you>\Documents\Urban Jungle Task\`
-- **macOS / Linux:** `~/Documents/Urban Jungle Task/`
-
-Confirm the folder contains at least these files at its top level:
-
-```
-UJ_price_estimator.ipynb
-UJ_datatask_prices.csv
-app.py
-requirements.txt
-README.md
-HOW_TO_RUN.md
+```bash
+git clone https://github.com/elyokerr/Projects.git
+cd Projects/urban-jungle-price-estimator
 ```
 
-### 3.2 Open a terminal in that folder
+Then place the raw CSV at:
 
-- **Windows:** Open **PowerShell**, then `cd "C:\Users\<you>\Documents\Urban Jungle Task"`
-- **macOS:** Open **Terminal**, then `cd "~/Documents/Urban Jungle Task"`
-- **Linux:** Same as macOS.
+```
+urban-jungle-price-estimator/data/raw/UJ_datatask_prices.csv
+```
+
+Confirm the project layout looks roughly like this:
+
+```
+urban-jungle-price-estimator/
+├── README.md
+├── requirements.txt
+├── notebooks/UJ_price_estimator.ipynb
+├── app/app.py
+├── models/uj_price_estimator_bundle.joblib   (created on first run)
+├── data/raw/UJ_datatask_prices.csv           (you place this)
+└── docs/HOW_TO_RUN.md                        ← this file
+```
+
+### 3.2 Open a terminal in the project folder
+
+- **Windows:** Open **PowerShell**, then `cd <path>\Projects\urban-jungle-price-estimator`
+- **macOS / Linux:** Open **Terminal**, then `cd <path>/Projects/urban-jungle-price-estimator`
 
 ### 3.3 (Optional but recommended) Create a virtual environment
 
@@ -118,7 +126,7 @@ Go to either [Section 5 (dashboard)](#5-running-the-interactive-dashboard) or
 You only need this if you can't or don't want to install Python locally.
 
 1. Open https://colab.research.google.com/
-2. Click **File → Upload notebook** and select `UJ_price_estimator.ipynb` from the project ZIP.
+2. Click **File → Upload notebook** and select `notebooks/UJ_price_estimator.ipynb` from your cloned repo.
 3. In the Colab left sidebar, click the **folder icon** (Files panel).
 4. Click the **upload icon** (page with up-arrow) and upload `UJ_datatask_prices.csv`.
 5. Click **Runtime → Run all**.
@@ -137,25 +145,26 @@ use the model.
 
 ### One-click launchers
 
-**Windows:** Double-click `run_app.bat` in File Explorer. It installs
+**Windows:** Double-click `app\run_app.bat` in File Explorer. It installs
 dependencies (if needed) and opens the app in your browser.
 
-**macOS / Linux:**
+**macOS / Linux** (from the project root):
 ```bash
-chmod +x run_app.sh   # one-time
-./run_app.sh
+chmod +x app/run_app.sh   # one-time
+./app/run_app.sh
 ```
 
-### Manual launch (any platform)
+### Manual launch (any platform, from the project root)
 
 ```bash
-streamlit run app.py
+streamlit run app/app.py
 ```
 
 Your default browser opens automatically at `http://localhost:8501`.
 
-**First run:** The app trains the model from the CSV (~30 seconds, shown as a
-progress bar) and caches it to `artifacts/uj_price_estimator_bundle.joblib`.
+**First run:** The app trains the model from `data/raw/UJ_datatask_prices.csv`
+(~30 seconds, shown as a progress bar) and caches it to
+`models/uj_price_estimator_bundle.joblib`.
 
 **Subsequent runs:** The cached model loads instantly.
 
@@ -174,8 +183,10 @@ To stop the app, return to the terminal and press **Ctrl+C**.
 
 ## 6. Running the notebook
 
+From the project root:
+
 ```bash
-jupyter notebook UJ_price_estimator.ipynb
+jupyter notebook notebooks/UJ_price_estimator.ipynb
 ```
 
 Your browser opens at `http://localhost:8888`. Click **Cell → Run All** (or
@@ -185,8 +196,8 @@ The first cell prints something like:
 
 ```
 Environment    : local
-Base dir       : C:\Users\<you>\Documents\Urban Jungle Task
-Data file      : .../UJ_datatask_prices.csv  OK
+Base dir       : <repo>/urban-jungle-price-estimator
+Data file      : data/raw/UJ_datatask_prices.csv  OK
 ─── versions ───────────────────────────────────────────
 Platform   : Windows-10-...
 Python     : 3.12.x
@@ -197,22 +208,22 @@ pandas     : 2.2.x
 
 If you see `Data file: ... NOT FOUND`, see [Troubleshooting](#8-troubleshooting).
 
-Total notebook runtime: ~5 minutes on a modern laptop. Plots are saved to
-`./plots/` and the trained model to `./artifacts/`.
+Total notebook runtime: ~5 minutes on a modern laptop. Plots render inline in
+the notebook; the trained bundle is saved to `models/uj_price_estimator_bundle.joblib`.
 
 ---
 
 ## 7. Using the trained model in your own code
 
 After running the notebook (or the dashboard at least once), a model bundle
-exists at `artifacts/uj_price_estimator_bundle.joblib`. Load and use it:
+exists at `models/uj_price_estimator_bundle.joblib`. Load and use it:
 
 ```python
 import joblib
 import pandas as pd
 import re
 
-bundle = joblib.load('artifacts/uj_price_estimator_bundle.joblib')
+bundle = joblib.load('models/uj_price_estimator_bundle.joblib')
 
 def predict_lowest_price(scenario, bundle=bundle):
     pc = scenario['INSUREDPOSTCODE']
@@ -248,16 +259,19 @@ print(result)
 
 ### "Data file: ... NOT FOUND" in the notebook
 
-Make sure `UJ_datatask_prices.csv` is in the **same folder as the notebook**.
-The notebook only looks at the current working directory by default. If your
-Jupyter server was launched from a different folder, either restart it from
-the correct folder or move/copy the CSV there.
+Make sure `UJ_datatask_prices.csv` is at `data/raw/UJ_datatask_prices.csv`
+relative to the project root. The notebook searches its `cwd` and the
+project root's `data/raw/` folder; if neither contains the CSV it falls
+through to the "NOT FOUND" message.
+
+Launch the notebook from the project root (`urban-jungle-price-estimator/`)
+so the relative path resolves correctly.
 
 ### Streamlit says `streamlit: command not found`
 
-Use the module form instead:
+Use the module form instead, from the project root:
 ```bash
-python -m streamlit run app.py
+python -m streamlit run app/app.py
 ```
 
 ### `pip install -r requirements.txt` fails
@@ -276,7 +290,7 @@ different Python interpreter. Re-activate the venv and re-run
 
 Another Streamlit app is running. Either close it or pick a different port:
 ```bash
-streamlit run app.py --server.port 8502
+streamlit run app/app.py --server.port 8502
 ```
 
 ### Notebook is in Colab but the CSV is on my Drive

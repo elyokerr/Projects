@@ -3,9 +3,9 @@
 > **Task**
 > Predicting the **lowest** premium a panel of insurers would offer for a given home-insurance quote, from the customer's input circumstances alone.
 
-> **Interactive demo** - a Streamlit web app (`app.py`) ships with the project. See [Section 11 - Interactive web app](#11-interactive-web-app) for a one-command launch.
+> **Interactive demo** - a Streamlit web app (`app/app.py`) ships with the project. See [Section 11 - Interactive web app](#11-interactive-web-app) for a one-command launch.
 
-> **Fully portable** - the project runs unchanged from a downloaded ZIP. No Google Drive, no manual path edits, no extra setup. See [`HOW_TO_RUN.md`](HOW_TO_RUN.md) for a complete step-by-step guide.
+> **Reproducible** - clone the repo, place the raw CSV in `data/raw/`, install dependencies, and the notebook or app runs end-to-end with no path edits. See [`docs/HOW_TO_RUN.md`](docs/HOW_TO_RUN.md) for a step-by-step guide.
 
 ---
 
@@ -79,6 +79,36 @@ Every dependency is pinned in `requirements.txt`. The runtime versions are also
 printed by the notebook's first cell so reviewers can confirm reproducibility.
 
 ---
+
+## 4. Project structure
+
+```
+urban-jungle-price-estimator/
+├── README.md                                  ← You are here
+├── requirements.txt                           ← Pinned Python dependencies
+├── .gitignore                                 ← Project-specific ignores
+│
+├── notebooks/
+│   └── UJ_price_estimator.ipynb               ← Full analysis + modelling pipeline
+│
+├── app/
+│   ├── app.py                                 ← Streamlit web app
+│   ├── run_app.bat                            ← Windows launcher
+│   └── run_app.sh                             ← macOS / Linux launcher
+│
+├── models/
+│   └── uj_price_estimator_bundle.joblib       ← Trained point + quantile models
+│
+├── data/
+│   ├── README.md                              ← Where to put the raw CSV
+│   └── raw/                                   ← UJ_datatask_prices.csv (gitignored)
+│
+└── docs/
+    └── HOW_TO_RUN.md                          ← Full run-instructions guide
+```
+
+---
+
 ## 5. Methodology - step by step
 
 The notebook follows a deliberate progression: **understand the data → reduce it to its real signal → model it → validate honestly → explain it → make it deployable.**
@@ -227,32 +257,32 @@ Trained point-estimate model + quantile heads serialised with `joblib` into a si
 ---
 ## 10. How to reproduce
 
-> See [HOW_TO_RUN.md](HOW_TO_RUN.md) for a fully-detailed step-by-step guide
-> with troubleshooting.
-
-The project is **fully portable** - anyone can download the ZIP, extract it,
-install dependencies, and run everything. **No Google Drive mount, no manual
-path edits, and no additional configuration are needed.**
+> See [docs/HOW_TO_RUN.md](docs/HOW_TO_RUN.md) for the fully-detailed
+> step-by-step guide with troubleshooting.
 
 ### Quick start (local - recommended)
 
 ```bash
-# 1. Extract the ZIP and enter the folder
-cd "Urban Jungle Task"
+# 1. Clone the portfolio repo and enter this project
+git clone https://github.com/elyokerr/Projects.git
+cd Projects/urban-jungle-price-estimator
 
-# 2. Install dependencies (one-time)
+# 2. Place the raw CSV at data/raw/UJ_datatask_prices.csv
+#    (see data/README.md for details)
+
+# 3. Install dependencies (one-time)
 pip install -r requirements.txt
 
-# 3a. Run the notebook
-jupyter notebook UJ_price_estimator.ipynb
+# 4a. Run the notebook
+jupyter notebook notebooks/UJ_price_estimator.ipynb
 
-# 3b. ...or launch the interactive dashboard
-streamlit run app.py
+# 4b. ...or launch the interactive dashboard
+streamlit run app/app.py
 ```
 
 ### Quick start (Google Colab)
 
-1. Open Colab → **File → Upload notebook** → choose `UJ_price_estimator.ipynb`.
+1. Open Colab → **File → Upload notebook** → choose `notebooks/UJ_price_estimator.ipynb`.
 2. In the Colab left sidebar, click the **Files** icon and upload `UJ_datatask_prices.csv`.
 3. **Run all cells.** The first cell auto-detects Colab and reads the uploaded CSV directly from `/content/`. No Drive mount required.
 
@@ -261,7 +291,7 @@ streamlit run app.py
 ```python
 import joblib
 
-bundle = joblib.load('artifacts/uj_price_estimator_bundle.joblib')
+bundle = joblib.load('models/uj_price_estimator_bundle.joblib')
 # bundle contains: point_model, quantile_models, feature_cols, cat_levels, etc.
 
 # Or use the predict_lowest_price() function defined in the notebook
@@ -283,20 +313,20 @@ or internal pricing tool would consume the trained model.
 
 ### One-command launch
 
-**Windows:**
+**Windows** (from the project root):
 ```cmd
-run_app.bat
+app\run_app.bat
 ```
 
-**macOS / Linux:**
+**macOS / Linux** (from the project root):
 ```bash
-./run_app.sh
+./app/run_app.sh
 ```
 
 **Or directly (any platform):**
 ```bash
 pip install -r requirements.txt
-streamlit run app.py
+streamlit run app/app.py
 ```
 
 The app opens automatically in your browser at `http://localhost:8501`.
@@ -304,8 +334,8 @@ The app opens automatically in your browser at `http://localhost:8501`.
 ### How it works
 
 - **First run** (~30 seconds): trains the HGB point-estimate model and the three
-  quantile heads from `UJ_datatask_prices.csv`, then saves the bundle to
-  `artifacts/uj_price_estimator_bundle.joblib`.
+  quantile heads from `data/raw/UJ_datatask_prices.csv`, then saves the bundle
+  to `models/uj_price_estimator_bundle.joblib`.
 - **Subsequent runs**: loads the cached bundle instantly via `@st.cache_resource`.
 - **No internet required** after the initial `pip install`.
 

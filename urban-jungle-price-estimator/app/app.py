@@ -2,11 +2,12 @@
 Lowest-Price Quote Estimator - Dashboard
 Interactive Streamlit demo
 
-Launch:
-    streamlit run app.py
+Launch (from the project root):
+    streamlit run app/app.py
 
-First run trains the model from UJ_datatask_prices.csv (~30s) and caches it
-to artifacts/uj_price_estimator_bundle.joblib. Subsequent runs load instantly.
+First run trains the model from data/raw/UJ_datatask_prices.csv (~30s) and
+caches it to models/uj_price_estimator_bundle.joblib. Subsequent runs load
+instantly from cache.
 """
 
 from __future__ import annotations
@@ -79,13 +80,14 @@ st.markdown(
 )
 
 # ────────────────────────────────────────────────────────────────────────────
-# Paths
+# Paths (project layout: app/app.py, data/raw/<csv>, models/<bundle>)
 # ────────────────────────────────────────────────────────────────────────────
-BASE_DIR = Path(__file__).parent
-DATA_PATH = BASE_DIR / "UJ_datatask_prices.csv"
-ARTIFACTS_DIR = BASE_DIR / "artifacts"
-BUNDLE_PATH = ARTIFACTS_DIR / "uj_price_estimator_bundle.joblib"
-ARTIFACTS_DIR.mkdir(exist_ok=True)
+APP_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = APP_DIR.parent
+DATA_PATH = PROJECT_ROOT / "data" / "raw" / "UJ_datatask_prices.csv"
+MODELS_DIR = PROJECT_ROOT / "models"
+BUNDLE_PATH = MODELS_DIR / "uj_price_estimator_bundle.joblib"
+MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
 RANDOM_STATE = 42
 FEATURES_NUM = ["AGE", "BEDROOMS_N", "ACCID_CONTENTS", "ALARM_BIN"]
@@ -114,8 +116,8 @@ def load_or_train_bundle() -> dict:
 
     if not DATA_PATH.exists():
         st.error(
-            f"Could not find `{DATA_PATH.name}` in {BASE_DIR}. "
-            "Place the raw CSV next to `app.py` and reload."
+            f"Could not find `{DATA_PATH.name}` at `{DATA_PATH}`. "
+            "Place the raw CSV in `data/raw/` and reload."
         )
         st.stop()
 
@@ -365,8 +367,8 @@ with st.sidebar:
     st.markdown("### Resources")
     st.markdown(
         """
-        - [README.md](./README.md)
-        - [Notebook](./UJ_price_estimator.ipynb)
+        - [README.md](../README.md)
+        - [Notebook](../notebooks/UJ_price_estimator.ipynb)
         """
     )
 
