@@ -216,3 +216,38 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ---------------------------------------------------------------
+# Repo-wide portfolio additions
+# ---------------------------------------------------------------
+
+# MLflow experiment tracking artifacts (regenerated on each run)
+mlruns/
+mlartifacts/
+
+# Large data files — keep raw/ structure, ignore contents
+**/data/raw/*
+**/data/interim/*
+**/data/processed/*
+**/data/external/*
+!**/data/raw/.gitkeep
+!**/data/interim/.gitkeep
+!**/data/processed/.gitkeep
+!**/data/external/.gitkeep
+!**/data/**/README.md
+
+# Tool / IDE clutter
+.claude/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Large serialized artifacts that exceed GitHub's 100MB limit
+*.bin
+*.h5
+*.hdf5
+
