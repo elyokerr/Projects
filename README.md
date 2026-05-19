@@ -23,23 +23,6 @@ An end-to-end ML system that predicts which SaaS customers are at risk of cancel
 
 ---
 
-### [`urban-jungle-price-estimator/`](urban-jungle-price-estimator/) — Lowest-Price Home Insurance Quote Estimator
-
-A regression system that predicts the **cheapest** home-insurance premium a panel of seven insurers would offer for a given customer scenario — useful for price-led marketing, funnel analytics, and quote-flow optimisation. Ships with a notebook end-to-end pipeline and a Streamlit web app.
-
-| Highlight | Value |
-|---|---|
-| Test-set MAE (HGB tuned) | **£0.67** |
-| R² | **0.999** |
-| Honest CV MAE gap (random vs group split) | Surfaces real geographic generalisation cost |
-| Interfaces | Streamlit web app, Jupyter notebook, joblib bundle |
-
-**Stack:** Python · pandas · NumPy · scikit-learn (HistGradientBoosting + quantile regression) · SHAP · Streamlit · Plotly · joblib
-
-➡ [Open project](urban-jungle-price-estimator/)
-
----
-
 ## How this repo is organised
 
 ```
@@ -51,8 +34,7 @@ Projects/
 │
 ├── _template/             ← Skeleton for new projects
 │
-├── saas-churn-prediction/
-└── urban-jungle-price-estimator/
+└── saas-churn-prediction/
 ```
 
 Every project folder uses the same internal layout:

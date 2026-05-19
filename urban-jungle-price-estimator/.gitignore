@@ -1,8 +1,0 @@
-# Project-specific ignores
-# (Repo-wide ignores — __pycache__, .ipynb_checkpoints, data/raw/*, IDE files —
-#  live in the root .gitignore. Only add project-specific ones here.)
-
-# The raw CSV is 160 MB, well over GitHub's 100 MB hard limit.
-# It is already covered by the repo-wide `**/data/raw/*` rule, but we
-# list it explicitly here as documentation.
-data/raw/UJ_datatask_prices.csv
