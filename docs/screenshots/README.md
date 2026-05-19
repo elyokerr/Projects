@@ -15,7 +15,7 @@
 2. [Dataset](#2-dataset)
 3. [Tech stack](#3-tech-stack)
 4. [Project structure](#4-project-structure)
-5. [Methodology — step by step](#5-methodology--step-by-step)
+5. [Methodology - step by step](#5-methodology--step-by-step)
 6. [Results](#6-results)
 7. [Key findings & business takeaways](#7-key-findings--business-takeaways)
 8. [Assumptions](#8-assumptions)
@@ -85,11 +85,11 @@ The notebook follows a deliberate progression: **understand the data → reduce 
 
 ### 5.1 Data quality analysis
 
-Before any modelling: check dtypes, nulls, duplicates, cardinality per column, and memory footprint. Result: zero nulls, zero duplicates, 44 constant columns out of 67 — the dataset is a curated extract, not raw production data.
+Before any modelling: check dtypes, nulls, duplicates, cardinality per column, and memory footprint. Result: zero nulls, zero duplicates, 44 constant columns out of 67 - the dataset is a curated extract, not raw production data.
 
 ### 5.2 Structural EDA
 
-Map the shape of the data: how many quotes per QuoteID, how many insurers compete, panel coverage per insurer. This confirms the problem framing — each QuoteID is a unique scenario, and the task is to predict the cheapest quote across all insurers.
+Map the shape of the data: how many quotes per QuoteID, how many insurers compete, panel coverage per insurer. This confirms the problem framing - each QuoteID is a unique scenario, and the task is to predict the cheapest quote across all insurers.
 
 ### 5.3 Target deep dive
 
@@ -112,7 +112,7 @@ The product **4 × 13 × 3 × 30 × 2 × 2 = 18,720** matches the unique-QuoteID
 
 ### 5.5 Univariate and bivariate EDA
 
-Spearman correlations, per-feature univariate R², and 2-way interaction heatmaps. Key finding: postcode alone explains 43% of variance, bedrooms 26%, and combining them yields more than the sum — confirming interaction effects that tree models will capture.
+Spearman correlations, per-feature univariate R², and 2-way interaction heatmaps. Key finding: postcode alone explains 43% of variance, bedrooms 26%, and combining them yields more than the sum - confirming interaction effects that tree models will capture.
 
 ### 5.6 Feature engineering
 
@@ -165,7 +165,7 @@ Trained point-estimate model + quantile heads serialised with `joblib` into a si
 
 ## 6. Results
 
-### Random 80/20 split — test set (n = 3,744)
+### Random 80/20 split - test set (n = 3,744)
 
 | Model | MAE (£) | RMSE (£) | MAPE (%) | R² |
 |---|---:|---:|---:|---:|
@@ -207,12 +207,12 @@ Trained point-estimate model + quantile heads serialised with `joblib` into a si
 ## 7. Key findings & business takeaways
 
 1. **Six features are enough.** 33 of 39 declared input columns carry no signal. Honest triage avoids a bloated pipeline.
-2. **Postcode and property size dominate** — geography (crime/theft/flood risk) and contents-at-risk are the two biggest pricing levers, exactly as insurance underwriting theory predicts.
-3. **Security and cover toggles matter more in combination than alone.** Alarm type looks weak by itself (R² = 0.10) but contributes significantly in interaction with postcode — useful for designing optional add-ons.
+2. **Postcode and property size dominate** - geography (crime/theft/flood risk) and contents-at-risk are the two biggest pricing levers, exactly as insurance underwriting theory predicts.
+3. **Security and cover toggles matter more in combination than alone.** Alarm type looks weak by itself (R² = 0.10) but contributes significantly in interaction with postcode - useful for designing optional add-ons.
 4. **A simple model is already good.** Ridge cuts the baseline from £35 to £12 - a viable choice under strict interpretability requirements. Gradient boosting pushes to sub-£1 error.
 5. **Geographic generalisation is the real challenge.** The model excels at interpolation but cannot predict for unseen postcodes without external geographic signals.
 6. **Prediction intervals add real business value.** "Between £127 and £134" is far more useful to a customer-facing UI than "£130."
-7. **The model is unbiased.** Residuals centre on zero with no systematic over- or under-prediction across the price range — suitable for use as a quote pre-screen.
+7. **The model is unbiased.** Residuals centre on zero with no systematic over- or under-prediction across the price range - suitable for use as a quote pre-screen.
 
 ---
 
@@ -313,8 +313,8 @@ The app opens automatically in your browser at `http://localhost:8501`.
 
 | Component | Tool |
 |---|---|
-| Web framework | **Streamlit** — the industry-standard ML demo framework |
-| Charts | **Plotly** — interactive gauge, band, and bar charts |
+| Web framework | **Streamlit** - the industry-standard ML demo framework |
+| Charts | **Plotly** - interactive gauge, band, and bar charts |
 | Model serving | **joblib**-loaded scikit-learn pipeline |
 | State | Streamlit's built-in `@cache_resource` decorator |
 
