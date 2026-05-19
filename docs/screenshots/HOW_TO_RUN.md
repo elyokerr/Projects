@@ -1,4 +1,4 @@
-# HOW TO RUN - Urban Jungle Price Estimator
+# HOW TO RUN - Price Estimator
 
 A fully self-contained, step-by-step guide. Anyone with a ZIP of this project
 can be up and running in under 5 minutes — no Google Drive, no manual path
