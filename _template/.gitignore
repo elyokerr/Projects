@@ -1,0 +1,8 @@
+# Project-specific ignores
+# (Repo-wide ignores live in the root .gitignore — add only project-specific ones here)
+
+# Example: a specific large dataset
+# my_huge_dataset.csv
+
+# Example: a notebook scratchpad you don't want to track
+# notebooks/scratch.ipynb
