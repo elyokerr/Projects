@@ -1,13 +1,11 @@
-# Urban Jungle — Lowest-Price Home Insurance Quote Estimator
+# Lowest-Price Home Insurance Quote Estimator
 
-> **Take-home data task — Round 2 interview submission**
+> **Task**
 > Predicting the **lowest** premium a panel of insurers would offer for a given home-insurance quote, from the customer's input circumstances alone.
 
-> **Version 2** — fully rewritten notebook with honest validation, hyperparameter tuning, prediction intervals, SHAP explanations, and a deployable inference function. See [v1 → v2 changes](#v1--v2-changes) for a full diff.
->
-> **Interactive demo** — a Streamlit web app (`app.py`) ships with the project. See [Section 11 — Interactive web app](#11-interactive-web-app) for a one-command launch.
->
-> **Fully portable** — the project runs unchanged from a downloaded ZIP. No Google Drive, no manual path edits, no extra setup. See [`HOW_TO_RUN.md`](HOW_TO_RUN.md) for a complete step-by-step guide.
+> **Interactive demo** - a Streamlit web app (`app.py`) ships with the project. See [Section 11 - Interactive web app](#11-interactive-web-app) for a one-command launch.
+
+> **Fully portable** - the project runs unchanged from a downloaded ZIP. No Google Drive, no manual path edits, no extra setup. See [`HOW_TO_RUN.md`](HOW_TO_RUN.md) for a complete step-by-step guide.
 
 ---
 
@@ -30,11 +28,11 @@
 
 ## 1. The business problem
 
-Urban Jungle operates as an aggregator: for any given customer, several insurers on the panel return quotes, and the customer is interested primarily in the **cheapest** offer available. Being able to *estimate the lowest premium up-front*, before triggering live underwriting calls, is commercially valuable because it:
+The company operates as an aggregator: for any given customer, several insurers on the panel return quotes, and the customer is interested primarily in the **cheapest** offer available. Being able to *estimate the lowest premium up-front*, before triggering live underwriting calls, is commercially valuable because it:
 
 - enables **price-led marketing** ("from £X for your circumstances…");
-- supports **product analytics** — understanding which customer segments are well-served by the panel and which aren't;
-- drives **funnel optimisation** — flagging customers likely to abandon if the genuine market price is high.
+- supports **product analytics** - understanding which customer segments are well-served by the panel and which aren't;
+- drives **funnel optimisation** - flagging customers likely to abandon if the genuine market price is high.
 
 The task is framed as a **regression problem**: given a subset of input circumstances, predict `min(TotalAmountPayable)` over all insurer / payment-method offerings for that quote.
 
@@ -81,45 +79,7 @@ Every dependency is pinned in `requirements.txt`. The runtime versions are also
 printed by the notebook's first cell so reviewers can confirm reproducibility.
 
 ---
-
-## 4. Project structure
-
-```
-Urban Jungle Task/
-├── README.md                          <-- you are here
-├── HOW_TO_RUN.md                      <-- step-by-step run instructions
-├── README.txt                         <-- original task brief
-├── CHEAT_SHEET.md                     <-- one-page project summary for stakeholders
-├── requirements.txt                   <-- pinned Python dependencies
-├── UJ_datatask_prices.csv             <-- raw quote data (385k rows)
-├── UJ_price_estimator.ipynb           <-- main analysis notebook (v2)
-├── app.py                             <-- Streamlit interactive demo app
-├── run_app.bat                        <-- one-click launcher (Windows)
-├── run_app.sh                         <-- one-click launcher (macOS/Linux)
-├── plots/                             <-- generated visualisations (~12 plots)
-│   ├── 01_data_quality.png
-│   ├── 02_structural_eda.png
-│   ├── 03_target_distribution.png
-│   ├── 04_univariate_boxplots.png
-│   ├── 05_correlation_heatmap.png
-│   ├── 06_interaction_pa_x_bedrooms.png
-│   ├── 07_cv_split_comparison.png
-│   ├── 08_pred_vs_actual_residuals.png
-│   ├── 09_permutation_importance.png
-│   ├── 10_shap_summary.png
-│   ├── 11_error_by_segment.png
-│   └── 12_quantile_band.png
-├── artifacts/
-│   └── uj_price_estimator_bundle.joblib  <-- trained model + quantile heads
-├── target_distribution.png            <-- legacy v1 plot
-├── univariate_boxplots.png
-├── pred_vs_actual_residuals.png
-└── feature_importance.png
-```
-
----
-
-## 5. Methodology — step by step
+## 5. Methodology - step by step
 
 The notebook follows a deliberate progression: **understand the data → reduce it to its real signal → model it → validate honestly → explain it → make it deployable.**
 
@@ -133,7 +93,7 @@ Map the shape of the data: how many quotes per QuoteID, how many insurers compet
 
 ### 5.3 Target deep dive
 
-Analyse the distribution of `min(TotalAmountPayable)`: skew (+2.19), kurtosis (9.72), Q-Q plot against normal, and a log-transform test. Decision: model on raw £ scale — tree models are scale-invariant, and raw £ keeps the output directly interpretable. IQR outlier scan finds 3.1% above the upper fence, all genuine high-risk scenarios (5-bedroom properties in expensive postcodes).
+Analyse the distribution of `min(TotalAmountPayable)`: skew (+2.19), kurtosis (9.72), Q-Q plot against normal, and a log-transform test. Decision: model on raw £ scale - tree models are scale-invariant, and raw £ keeps the output directly interpretable. IQR outlier scan finds 3.1% above the upper fence, all genuine high-risk scenarios (5-bedroom properties in expensive postcodes).
 
 ### 5.4 Input-feature triage
 
@@ -148,7 +108,7 @@ Of 39 declared input columns, **31 are constants**, 1 (`INDUSTRY`) is redundant 
 | `ACCIDENTALCONTENTS` | 2 (True/False) | Binary |
 | `ALARMTYPE` | 2 (NoAlarm/NonMaintained) | Binary |
 
-The product **4 × 13 × 3 × 30 × 2 × 2 = 18,720** matches the unique-QuoteID count exactly — these 6 features fully define every scenario.
+The product **4 × 13 × 3 × 30 × 2 × 2 = 18,720** matches the unique-QuoteID count exactly - these 6 features fully define every scenario.
 
 ### 5.5 Univariate and bivariate EDA
 
@@ -160,10 +120,10 @@ Spearman correlations, per-feature univariate R², and 2-way interaction heatmap
 - **`NUMBEDROOMS`** → ordinal `{One:1, Three:3, Five:5}`
 - **`ACCIDENTALCONTENTS`, `ALARMTYPE`** → 0/1 binaries
 - **`OCCUPATION`, `INSUREDPOSTCODE`** → native categorical for HGB, one-hot for Ridge/RF
-- **`POSTCODE_OUTWARD`** (e.g. `N16`, `SW7`) — the standard UK insurance geo unit, new in v2
-- **`POSTCODE_AREA`** (e.g. `N`, `SW`) — coarse geographic grouping
+- **`POSTCODE_OUTWARD`** (e.g. `N16`, `SW7`) - the standard UK insurance geo unit, new in v2
+- **`POSTCODE_AREA`** (e.g. `N`, `SW`) - coarse geographic grouping
 
-### 5.7 Train/test protocol — three splits
+### 5.7 Train/test protocol - three splits
 
 | Split | What it tests | Why |
 |---|---|---|
@@ -177,10 +137,10 @@ The gap between random-split and group-split MAE is the most commercially import
 
 Four models in increasing complexity, each justified by beating the previous:
 
-1. **Baseline** — `DummyRegressor(mean)` sets the floor
-2. **Ridge regression** — interpretable, fast, defensible
-3. **Random Forest** — captures interactions automatically
-4. **HistGradientBoosting** — native categorical support, the modern GBM workhorse
+1. **Baseline** - `DummyRegressor(mean)` sets the floor
+2. **Ridge regression** - interpretable, fast, defensible
+3. **Random Forest** - captures interactions automatically
+4. **HistGradientBoosting** - native categorical support, the modern GBM workhorse
 
 ### 5.9 Hyperparameter tuning
 
@@ -217,7 +177,7 @@ Trained point-estimate model + quantile heads serialised with `joblib` into a si
 
 ★ Selected as the production model.
 
-### Honest validation — 5-fold CV MAE across splitting regimes
+### Honest validation - 5-fold CV MAE across splitting regimes
 
 | Model | Random KFold | GroupKFold postcode | GroupKFold occupation |
 |---|---:|---:|---:|
@@ -249,7 +209,7 @@ Trained point-estimate model + quantile heads serialised with `joblib` into a si
 1. **Six features are enough.** 33 of 39 declared input columns carry no signal. Honest triage avoids a bloated pipeline.
 2. **Postcode and property size dominate** — geography (crime/theft/flood risk) and contents-at-risk are the two biggest pricing levers, exactly as insurance underwriting theory predicts.
 3. **Security and cover toggles matter more in combination than alone.** Alarm type looks weak by itself (R² = 0.10) but contributes significantly in interaction with postcode — useful for designing optional add-ons.
-4. **A simple model is already good.** Ridge cuts the baseline from £35 to £12 — a viable choice under strict interpretability requirements. Gradient boosting pushes to sub-£1 error.
+4. **A simple model is already good.** Ridge cuts the baseline from £35 to £12 - a viable choice under strict interpretability requirements. Gradient boosting pushes to sub-£1 error.
 5. **Geographic generalisation is the real challenge.** The model excels at interpolation but cannot predict for unseen postcodes without external geographic signals.
 6. **Prediction intervals add real business value.** "Between £127 and £134" is far more useful to a customer-facing UI than "£130."
 7. **The model is unbiased.** Residuals centre on zero with no systematic over- or under-prediction across the price range — suitable for use as a quote pre-screen.
@@ -258,43 +218,23 @@ Trained point-estimate model + quantile heads serialised with `joblib` into a si
 
 ## 8. Assumptions
 
-- **`TransactionCharge` is a quote output, not an input** — including it would leak target information.
+- **`TransactionCharge` is a quote output, not an input** - including it would leak target information.
 - **Reference date for age = 2026-05-15.** DOB values are uniformly `01/01`, so the choice only adds an integer constant.
-- **No missing-data handling required** — zero nulls across the entire dataset.
-- **The lowest available price is what we model** — we do not condition on which insurer or payment method delivered it.
-- **The 7 insurers, 30 postcodes and 13 occupations represent the full universe for this exercise** — the model is not expected to generalise to entirely new categories.
+- **No missing-data handling required** - zero nulls across the entire dataset.
+- **The lowest available price is what we model** - we do not condition on which insurer or payment method delivered it.
+- **The 7 insurers, 30 postcodes and 13 occupations represent the full universe for this exercise** - the model is not expected to generalise to entirely new categories.
 
 ---
-
-## 9. Limitations & next steps
-
-### Limitations
-
-- **Geographic generalisation.** With only 30 postcodes, the model cannot predict for unseen locations. The GroupKFold-by-postcode MAE (~£24) quantifies this gap.
-- **No external features.** Crime rate, flood-risk index, and rebuild cost per postcode are almost certainly the highest-leverage additions.
-- **Static model.** Insurer pricing surfaces drift; production needs scheduled re-training and drift monitoring.
-- **Quantile calibration.** The 80% band achieves 75.4% empirical coverage — close but not formally guaranteed. Conformal prediction would tighten this.
-- **No SHAP interaction values.** The next step for deeper explanation of feature interplay.
-
-### Prioritised next steps
-
-1. **FastAPI inference service** + Dockerfile for production deployment.
-2. **External geographic features** (Police.uk crime API, Environment Agency flood risk).
-3. **Drift monitoring** with Evidently AI (input + prediction distribution tracking).
-4. **Conformal-prediction wrapper** for formal coverage guarantees on the quantile heads.
-
----
-
 ## 10. How to reproduce
 
 > See [HOW_TO_RUN.md](HOW_TO_RUN.md) for a fully-detailed step-by-step guide
 > with troubleshooting.
 
-The project is **fully portable** — anyone can download the ZIP, extract it,
+The project is **fully portable** - anyone can download the ZIP, extract it,
 install dependencies, and run everything. **No Google Drive mount, no manual
 path edits, and no additional configuration are needed.**
 
-### Quick start (local — recommended)
+### Quick start (local - recommended)
 
 ```bash
 # 1. Extract the ZIP and enter the folder
@@ -327,16 +267,6 @@ bundle = joblib.load('artifacts/uj_price_estimator_bundle.joblib')
 # Or use the predict_lowest_price() function defined in the notebook
 ```
 
-### Why the project is portable
-
-- **Auto-detection of environment** (Colab vs local) in the first notebook cell.
-- **All paths derived from `Path.cwd()` / notebook directory** — never hard-coded.
-- **No Google Drive mount in the default path** — only an opt-in fallback (`os.environ['UJ_USE_DRIVE'] = '1'`) for the original author's workflow.
-- **`requirements.txt` ships with pinned dependency ranges** to guarantee a working install.
-- **The Streamlit app trains the model on first run** from the CSV — no pre-existing artefact required.
-
----
-
 ## 11. Interactive web app
 
 An interactive **Streamlit web app** (`app.py`) is included to demonstrate the
@@ -344,13 +274,12 @@ real-world usage of the price estimator. It simulates how a customer-facing UI
 or internal pricing tool would consume the trained model.
 
 ### Features
-
-- **Customer profile form** — age, bedrooms, postcode, occupation, alarm & accidental-cover toggles
+- **Customer profile form** - age, bedrooms, postcode, occupation, alarm & accidental-cover toggles
 - **Headline price + 80% confidence band** with a speedometer-style gauge
-- **Quick presets** — three sample customer profiles (young renter, family home, senior in affluent area)
-- **Market insights tab** — interactive charts comparing prices across bedrooms and postcodes
-- **Model card** — algorithm, hyperparameters, training stats, test-set metrics
-- **Honest validation panel** — shows the random-split vs group-split MAE gap
+- **Quick presets** - three sample customer profiles (young renter, family home, senior in affluent area)
+- **Market insights tab** - interactive charts comparing prices across bedrooms and postcodes
+- **Model card** - algorithm, hyperparameters, training stats, test-set metrics
+- **Honest validation panel** - shows the random-split vs group-split MAE gap
 
 ### One-command launch
 
@@ -398,24 +327,3 @@ gateway. The Streamlit demo is the fastest route from notebook to a tangible,
 stakeholder-demoable artefact.
 
 ---
-
-## v1 → v2 changes
-
-| Area | v1 | v2 |
-|---|---|---|
-| **Validation** | Random 80/20 only (interpolation) | + GroupKFold by postcode and by occupation |
-| **Hyperparameter tuning** | None | `RandomizedSearchCV` (25 iterations) |
-| **Prediction intervals** | None | Quantile regression at q = {0.1, 0.5, 0.9} |
-| **Explainability** | Permutation importance only | + SHAP summary and per-prediction force plots |
-| **EDA depth** | 1 target histogram | Full data-quality audit, Q-Q plot, outlier scan, Spearman correlation, interaction heatmap |
-| **Feature engineering** | 6 features + area prefix | + outward postcode (standard UK insurance geo unit) |
-| **Code quality** | Hard-coded Colab path with typo, mandatory Drive mount | Fully portable: auto-detects Colab vs local, no Drive mount in default path, `pathlib` throughout |
-| **Productionisation** | None | `joblib` bundle + `predict_lowest_price()` inference helper |
-| **Reproducibility** | Versions printed | + `requirements.txt` + all `random_state`s pinned |
-| **Visualisations** | 4 plots | ~12 plots covering all analysis stages |
-
----
-
-## Closing note
-
-This submission privileges **clarity of reasoning** over raw model performance. Every modelling decision is paired with its *why*; every metric is reported alongside the alternatives considered. The ambition was to produce a notebook a senior reviewer could read end-to-end and understand not just *what* was built, but *why each choice was made*.
