@@ -67,7 +67,7 @@ The task is framed as a **regression problem**: given a subset of input circumst
 | Numerical core | **NumPy** | ≥ 2.0, < 2.3 |
 | Data wrangling | **pandas** | ≥ 2.2, < 2.4 |
 | Scientific stack | **SciPy** | ≥ 1.13, < 1.16 |
-| Modelling | **scikit-learn** — `Ridge`, `RandomForestRegressor`, `HistGradientBoostingRegressor`, `DummyRegressor` | ≥ 1.6, < 1.8 |
+| Modelling | **scikit-learn** - `Ridge`, `RandomForestRegressor`, `HistGradientBoostingRegressor`, `DummyRegressor` | ≥ 1.6, < 1.8 |
 | Validation | `KFold`, `GroupKFold`, `RandomizedSearchCV`, `train_test_split` | (scikit-learn) |
 | Explainability | **SHAP**, `permutation_importance` | shap ≥ 0.46, < 0.50 |
 | Model serialisation | **joblib** | ≥ 1.4, < 1.6 |
