@@ -1,7 +1,7 @@
 # HOW TO RUN - Price Estimator
 
 A fully self-contained, step-by-step guide. Anyone with a ZIP of this project
-can be up and running in under 5 minutes — no Google Drive, no manual path
+can be up and running in under 5 minutes - no Google Drive, no manual path
 edits, no extra configuration.
 
 ---
@@ -60,7 +60,7 @@ each range.
 
 ### 3.1 Extract the ZIP
 
-Unzip the project to any folder — for example:
+Unzip the project to any folder - for example:
 
 - **Windows:** `C:\Users\<you>\Documents\Urban Jungle Task\`
 - **macOS / Linux:** `~/Documents/Urban Jungle Task/`
@@ -298,4 +298,4 @@ runs hit the cached model bundle and start instantly.
 ---
 
 If you hit something not covered here, the notebook's first cell prints
-exactly where it looked for the data file and what failed — start there.
+exactly where it looked for the data file and what failed - start there.
