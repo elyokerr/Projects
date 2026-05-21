@@ -17,10 +17,18 @@ from dotenv import load_dotenv
 USER_AGENT = "filings-rag/0.1 (educational portfolio project)"
 
 
+BROWSERY_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+    "Accept": "application/pdf,application/octet-stream,*/*",
+    "Accept-Language": "en-GB,en;q=0.9",
+}
+
+
 def _head(url: str):
     return requests.head(
         url,
-        headers={"User-Agent": USER_AGENT},
+        headers=BROWSERY_HEADERS,
         allow_redirects=True,
         timeout=30,
     )
@@ -29,23 +37,46 @@ def _head(url: str):
 def _get_bytes(url: str) -> bytes:
     resp = requests.get(
         url,
-        headers={"User-Agent": USER_AGENT},
-        timeout=120,
+        headers=BROWSERY_HEADERS,
+        timeout=180,
+        allow_redirects=True,
     )
     resp.raise_for_status()
     return resp.content
 
 
 def validate_pdf_url(url: str) -> bool:
-    """Return True if URL returns 200 OK with Content-Type: application/pdf."""
-    resp = _head(url)
-    return resp.status_code == 200 and "application/pdf" in resp.headers.get("Content-Type", "")
+    """Best-effort pre-download check that the URL likely serves a PDF.
+
+    Many CDNs misreport Content-Type on HEAD requests (text/html, octet-stream,
+    or nothing at all) while serving valid PDFs on GET. Strategy:
+    - URL ends in .pdf -> accept; magic bytes are verified post-download.
+    - Otherwise fall back to strict HEAD content-type check.
+    """
+    if url.lower().endswith(".pdf"):
+        return True
+    try:
+        resp = _head(url)
+    except Exception:
+        return False
+    if resp.status_code != 200:
+        return False
+    ctype = resp.headers.get("Content-Type", "")
+    return "application/pdf" in ctype or "application/octet-stream" in ctype
+
+
+def is_pdf_bytes(data: bytes) -> bool:
+    """True if `data` starts with the PDF magic prefix."""
+    return data[:5] == b"%PDF-"
 
 
 def download_pdf(url: str, out_path: Path, delay_s: float = 1.0) -> Path:
-    """Download URL to out_path. Politeness: sleep `delay_s` after each fetch."""
+    """Download URL to out_path. Validates magic bytes post-download. Politeness sleep `delay_s`."""
+    data = _get_bytes(url)
+    if not is_pdf_bytes(data):
+        raise ValueError(f"Content from {url} did not start with %PDF- (first 16 bytes: {data[:16]!r})")
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_bytes(_get_bytes(url))
+    out_path.write_bytes(data)
     time.sleep(delay_s)
     return out_path
 
