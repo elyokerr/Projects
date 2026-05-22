@@ -1,15 +1,21 @@
-"""BGE cross-encoder re-ranker for high-precision top-k re-ranking."""
+"""BGE cross-encoder re-ranker for high-precision top-k re-ranking.
+
+Uses sentence-transformers' CrossEncoder (rather than FlagEmbedding) because
+FlagEmbedding has a compatibility bug with transformers>=5 — it relies on
+`tokenizer.prepare_for_model` which has been removed. CrossEncoder loads the
+exact same BGE re-ranker model from HuggingFace and is maintained.
+"""
 
 from typing import List
 
-from FlagEmbedding import FlagReranker
+from sentence_transformers import CrossEncoder
 
 
 class BGEReranker:
-    """Wrap `FlagReranker` so the calling code stays library-agnostic."""
+    """Cross-encoder reranker. Same `bge-reranker-v2-m3` model, different loader."""
 
     def __init__(self, model_name: str = "BAAI/bge-reranker-v2-m3"):
-        self.model = FlagReranker(model_name, use_fp16=False)
+        self.model = CrossEncoder(model_name)
 
     def rerank(
         self,
@@ -18,12 +24,12 @@ class BGEReranker:
         top_k: int = 5,
     ) -> List[dict]:
         """Return top_k candidates sorted by cross-encoder relevance score."""
+        if not candidates:
+            return []
         pairs = [[query, c["text"]] for c in candidates]
-        scores = self.model.compute_score(pairs, normalize=True)
-        if isinstance(scores, float):
-            scores = [scores]
+        scores = self.model.predict(pairs)
         scored = [
-            {**c, "rerank_score": s}
+            {**c, "rerank_score": float(s)}
             for c, s in zip(candidates, scores)
         ]
         return sorted(scored, key=lambda x: -x["rerank_score"])[:top_k]
