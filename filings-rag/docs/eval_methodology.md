@@ -69,13 +69,27 @@ All metrics are logged to MLflow per run, tagged with the retrieval configuratio
 
 **Honest methodology caveat on the re-ranker row:** The pilot ground-truth chunk IDs in `data/qa_pilot.jsonl` were auto-seeded from the top-3 hybrid retrievals (a bootstrap, not human-labelled). The re-ranker's lower score reflects that it reorders the top-20 in ways that push some auto-seeded "gold" chunks past position 5, *not* that re-ranking is genuinely worse. With hand-labelled gold chunks the re-ranker row would be expected to outperform hybrid alone (well-documented in the BGE re-ranker literature). To produce a publishable re-ranker number, the pilot set must be re-labelled by reading the retrieved passages and keeping only the ones that are *actually* relevant to each question, regardless of which retrieval strategy surfaced them.
 
-### End-to-end ablation (40-question test set, full Ragas suite)
+### End-to-end ablation — preliminary, 2-question smoke test (2026-05-22)
 
-| Config | faithfulness | answer_relevancy | context_precision | context_recall | refusal_acc |
-|---|---|---|---|---|---|
-| Hybrid + re-ranker (default) | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ |
+| Metric | Value | Notes |
+|---|---|---|
+| Faithfulness | 0.423 | Ragas LLM-judged, on 2-question smoke test (BP climate + Tesla adversarial). Real number. |
+| Refusal accuracy | 1.000 | Adversarial query correctly refused with the sentinel string. |
+| Answer relevancy | _not run_ | See known issue below. |
+| Context precision/recall | _not run_ | Requires hand-labelled `ground_truth_answer` (30/40 are still PLACEHOLDER). |
 
-Run notebook `05_end_to_end_eval.ipynb` to populate. Requires `data/qa_test_set.jsonl` to have non-PLACEHOLDER `ground_truth_answer` fields (currently 10/40 are real — the adversarial subset; the other 30 need hand-labelling against the source PDFs).
+The full 40-question run was attempted but did not complete within a 60-minute timeout — the CPU cross-encoder reranker plus Groq free-tier rate limits compound: 40 questions × ~30s reranker × Groq 30 RPM limit during Ragas LLM-judge calls. A practical eval run requires either:
+
+- A GPU for the reranker (5–10x speedup), OR
+- A paid Groq tier with higher RPM, OR
+- A reduced test set (~10 questions) which the current code supports without modification.
+
+### Known Ragas + Groq integration issue
+
+**AnswerRelevancy is skipped when `LLM_PROVIDER=groq`.** The metric internally requests `n>1` chat completions to generate alternative phrasings; Groq's chat completions endpoint rejects this with `'n' : number must be at most 1`. Workarounds:
+
+- Set `LLM_PROVIDER=gemini` for the Ragas eval run only — Gemini accepts `n>1`. The build_llm() factory respects the env var, so the swap requires no code changes.
+- Or skip the metric entirely (current behaviour — `src/eval/ragas_eval.py` filters it out when provider is Groq, so the rest of the suite runs without error).
 
 ## How a CI run validates a change
 

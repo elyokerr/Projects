@@ -148,13 +148,16 @@ The adversarial subset has definitive expected refusals (`"No relevant content f
 
 Hybrid RRF beats pure-dense by +10 percentage points and pure-BM25 by +20pp on recall@5 — the core engineering claim of this project. See [`docs/eval_methodology.md`](docs/eval_methodology.md) for the honest methodology caveat on the re-ranker row (pilot ground-truth is auto-seeded, not human-labelled).
 
-**End-to-end ablation** (40-Q test set, Ragas + refusal):
+**End-to-end smoke test** (Ragas + custom refusal accuracy):
 
 | Metric | Value |
 |---|---|
-| Faithfulness · answer-relevancy · context-precision · context-recall · refusal_acc | _pending — requires hand-labelling the 30 non-adversarial answers in `data/qa_test_set.jsonl` first_ |
+| Faithfulness (Ragas LLM-judged) | **0.423** |
+| Refusal accuracy on adversarial queries | **1.000** |
+| Answer relevancy | _skipped — Groq chat-completions rejects `n>1` which the Ragas metric requires_ |
+| Context precision/recall | _skipped — requires hand-labelling the 30 PLACEHOLDER ground-truth answers in `data/qa_test_set.jsonl`_ |
 
-Run notebook `05_end_to_end_eval.ipynb` to populate once labels exist.
+Full 40-question run timed out at 60 min on CPU + Groq free-tier rate limits — see [`docs/eval_methodology.md`](docs/eval_methodology.md) for the diagnosis and the 3 documented paths to a complete eval (GPU reranker, paid Groq tier, or 10-question subset).
 
 ## 8. Testing
 
