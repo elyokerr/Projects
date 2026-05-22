@@ -1,4 +1,4 @@
-# Filings-RAG — Question-Answering over UK FTSE 100 Annual Reports
+# Filings-RAG - Question-Answering over UK FTSE 100 Annual Reports
 
 A production-style retrieval-augmented question-answering system over the annual reports of UK FTSE 100 companies. Hybrid retrieval (BM25 + BGE dense vectors), cross-encoder re-ranking, forced citations, and a Ragas evaluation pipeline tracked in MLflow. Streamlit chat UI; designed to deploy to Hugging Face Spaces.
 
@@ -17,7 +17,7 @@ A production-style retrieval-augmented question-answering system over the annual
 | Citation validation | Every cited `[TICKER\|YEAR\|p.PAGE]` is verified against retrieved chunks; regenerated once if any is unverifiable |
 | Eval framework | Ragas (faithfulness, answer-relevancy, context-precision, context-recall) + custom refusal accuracy on adversarial subset |
 | Retrieval ablation (recall@5) | Dense: 0.667 · BM25: 0.533 · **Hybrid RRF: 0.733** *(+10pp over dense, +20pp over BM25)* |
-| Full end-to-end Ragas ablation | _pending hand-labelling — see `docs/eval_methodology.md`_ |
+| Full end-to-end Ragas ablation | _pending hand-labelling - see `docs/eval_methodology.md`_ |
 
 ## 2. What it does
 
@@ -27,7 +27,7 @@ Given a question like *"What climate-related risks did BP discuss in 2024?"*, th
 2. Retrieves the top-50 candidate chunks from a hybrid index (BM25 + BGE dense vectors fused via Reciprocal Rank Fusion).
 3. Re-ranks them with a BGE cross-encoder, keeping the top 5.
 4. Synthesises an answer with **Groq Llama 3.3 70B**, forcing inline `[TICKER|YEAR|p.PAGE]` citations.
-5. Validates every cited (ticker, year, page) tuple against the retrieved chunks — regenerates once with a stricter prompt if any citation is unverifiable.
+5. Validates every cited (ticker, year, page) tuple against the retrieved chunks - regenerates once with a stricter prompt if any citation is unverifiable.
 
 ### Example response
 
@@ -73,7 +73,7 @@ filings-rag/
     └── eval_methodology.md
 ```
 
-## 6. Quickstart (local — no GPU required)
+## 6. Quickstart (local - no GPU required)
 
 ```bash
 # 1. Set up env
@@ -133,7 +133,7 @@ A 40-question hand-labelled test set (`data/qa_test_set.jsonl`) covers four cate
 - Single-company factual (10)
 - Multi-section synthesis (10)
 - Multi-company comparison (10)
-- Adversarial / refusal (10) — system should refuse cleanly
+- Adversarial / refusal (10) - system should refuse cleanly
 
 The adversarial subset has definitive expected refusals (`"No relevant content found in the corpus."`); the other 30 questions have section-pointing placeholders to be filled by reading the source PDFs once. Ragas + custom refusal accuracy are logged to MLflow per run, tagged by retrieval configuration. Full methodology and the ablation-table template live in [`docs/eval_methodology.md`](docs/eval_methodology.md).
 
@@ -146,7 +146,7 @@ The adversarial subset has definitive expected refusals (`"No relevant content f
 | **Hybrid (RRF)** | **0.733** | **0.800** | **1.000** |
 | Hybrid + re-ranker | 0.467 | 0.667 | 0.467 |
 
-Hybrid RRF beats pure-dense by +10 percentage points and pure-BM25 by +20pp on recall@5 — the core engineering claim of this project. See [`docs/eval_methodology.md`](docs/eval_methodology.md) for the honest methodology caveat on the re-ranker row (pilot ground-truth is auto-seeded, not human-labelled).
+Hybrid RRF beats pure-dense by +10 percentage points and pure-BM25 by +20pp on recall@5 - the core engineering claim of this project. See [`docs/eval_methodology.md`](docs/eval_methodology.md) for the honest methodology caveat on the re-ranker row (pilot ground-truth is auto-seeded, not human-labelled).
 
 **End-to-end smoke test** (Ragas + custom refusal accuracy):
 
@@ -154,8 +154,8 @@ Hybrid RRF beats pure-dense by +10 percentage points and pure-BM25 by +20pp on r
 |---|---|
 | Faithfulness (Ragas LLM-judged) | **0.423** |
 | Refusal accuracy on adversarial queries | **1.000** |
-| Answer relevancy | _skipped — Groq chat-completions rejects `n>1` which the Ragas metric requires_ |
-| Context precision/recall | _skipped — requires hand-labelling the 30 PLACEHOLDER ground-truth answers in `data/qa_test_set.jsonl`_ |
+| Answer relevancy | _skipped - Groq chat-completions rejects `n>1` which the Ragas metric requires_ |
+| Context precision/recall | _skipped - requires hand-labelling the 30 PLACEHOLDER ground-truth answers in `data/qa_test_set.jsonl`_ |
 
 The full 40-question pipeline was reproduced end-to-end on a Colab T4 GPU (indexing + retrieval + reranking + chain generation all completed cleanly); the Ragas LLM-judge calls then exhausted the Groq free-tier daily quota. See [`docs/eval_methodology.md`](docs/eval_methodology.md) for full diagnosis and the three documented paths to a complete eval (paid Groq tier, self-hosted Ollama judge, or 10-question subset). On the T4 the larger `bge-reranker-v2-m3` OOMs with Ragas activations; `cross-encoder/ms-marco-MiniLM-L-6-v2` is a documented drop-in (80 MB vs 2.3 GB, slightly lower ranking quality).
 
@@ -172,7 +172,7 @@ Unit-tested modules: chunker, vector store, BM25 index, RRF, LLM client (provide
 - **Corpus is static.** PDFs are fixed at indexing time; new filings need a re-index run.
 - **Numerical-table extraction is text-only.** The system reads narrative around tables but does not parse cell values structurally. Marked as a v2 candidate.
 - **Free-tier LLM caps.** Groq has request-per-minute limits; under sustained load the provider-agnostic client falls through to Gemini. Both are free but each has independent caps.
-- **Refuses investment-advice and out-of-corpus queries.** This is intentional — the prompt + validator pipeline is designed for traceable analyst use, not speculation.
+- **Refuses investment-advice and out-of-corpus queries.** This is intentional - the prompt + validator pipeline is designed for traceable analyst use, not speculation.
 - **Complex synthesis questions occasionally underperform.** Multi-section / multi-company synthesis with bge-small (384-dim) embeddings and a top-5 reranker window can miss the most relevant passages for very abstract questions; bge-large + top-10 reranking would close most of the gap.
 
 ---
