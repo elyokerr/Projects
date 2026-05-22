@@ -23,6 +23,24 @@ An end-to-end ML system that predicts which SaaS customers are at risk of cancel
 
 ---
 
+### [`filings-rag/`](filings-rag/) — Filings-RAG: Question-Answering over UK FTSE 100 Annual Reports
+
+A production-style retrieval-augmented question-answering system over the annual reports of UK FTSE 100 companies. Hybrid retrieval (BM25 + BGE dense vectors), cross-encoder re-ranking, **forced citations**, and a Ragas evaluation pipeline tracked in MLflow. Streamlit chat UI with click-through-to-source citations.
+
+| Highlight | Value |
+|---|---|
+| Corpus | **23 FTSE 100 companies · 34 annual reports · 10,722 pages** |
+| Chunks indexed | **19,399** (hybrid BM25 + BGE dense, RRF fusion, cross-encoder re-rank) |
+| Citation discipline | every `[TICKER\|YEAR\|p.PAGE]` is post-validated; chain regenerates once if any citation is unverifiable |
+| Compute | runs locally on CPU via fastembed (ONNX) — no GPU required |
+| Eval | 40-question hand-labelled test set (incl. 10 adversarial refusal cases); Ragas metrics + MLflow tracking |
+
+**Stack:** LangChain (LCEL) · ChromaDB · `bm25s` · `bge-small-en-v1.5` (fastembed/ONNX) · `bge-reranker-v2-m3` (CrossEncoder) · Groq Llama 3.3 70B + Gemini 2.0 Flash fallback · PyMuPDF · Ragas · MLflow · Streamlit · Docker · GitHub Actions CI
+
+➡ [Open project](filings-rag/)
+
+---
+
 ## How this repo is organised
 
 ```
@@ -34,7 +52,8 @@ Projects/
 │
 ├── _template/             ← Skeleton for new projects
 │
-└── saas-churn-prediction/
+├── saas-churn-prediction/
+└── filings-rag/
 ```
 
 Every project folder uses the same internal layout:

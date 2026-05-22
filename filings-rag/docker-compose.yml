@@ -1,0 +1,12 @@
+version: "3.9"
+
+services:
+  filings-rag:
+    build: .
+    ports:
+      - "8501:7860"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./mlruns:/app/mlruns
