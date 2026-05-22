@@ -251,3 +251,8 @@ Thumbs.db
 *.h5
 *.hdf5
 
+
+# Working artefacts produced by Colab/local builds
+filings-rag/data/processed.zip
+filings-rag/data/vector.zip
+03_embedding_index_build.ipynb

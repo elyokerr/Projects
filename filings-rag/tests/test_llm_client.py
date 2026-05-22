@@ -13,4 +13,4 @@ def test_groq_default_pulls_key_from_env(monkeypatch):
     monkeypatch.setenv("LLM_PROVIDER", "groq")
     monkeypatch.setenv("GROQ_API_KEY", "fake-key")
     llm = build_llm()
-    assert "llama-3.3-70b" in llm.model.lower() or "llama" in llm.model.lower()
+    assert "llama-3.3-70b" in llm.model_name.lower() or "llama" in llm.model_name.lower()
