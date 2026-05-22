@@ -157,7 +157,7 @@ Hybrid RRF beats pure-dense by +10 percentage points and pure-BM25 by +20pp on r
 | Answer relevancy | _skipped — Groq chat-completions rejects `n>1` which the Ragas metric requires_ |
 | Context precision/recall | _skipped — requires hand-labelling the 30 PLACEHOLDER ground-truth answers in `data/qa_test_set.jsonl`_ |
 
-Full 40-question run timed out at 60 min on CPU + Groq free-tier rate limits — see [`docs/eval_methodology.md`](docs/eval_methodology.md) for the diagnosis and the 3 documented paths to a complete eval (GPU reranker, paid Groq tier, or 10-question subset).
+The full 40-question pipeline was reproduced end-to-end on a Colab T4 GPU (indexing + retrieval + reranking + chain generation all completed cleanly); the Ragas LLM-judge calls then exhausted the Groq free-tier daily quota. See [`docs/eval_methodology.md`](docs/eval_methodology.md) for full diagnosis and the three documented paths to a complete eval (paid Groq tier, self-hosted Ollama judge, or 10-question subset). On the T4 the larger `bge-reranker-v2-m3` OOMs with Ragas activations; `cross-encoder/ms-marco-MiniLM-L-6-v2` is a documented drop-in (80 MB vs 2.3 GB, slightly lower ranking quality).
 
 ## 8. Testing
 

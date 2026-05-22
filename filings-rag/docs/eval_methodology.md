@@ -78,11 +78,22 @@ All metrics are logged to MLflow per run, tagged with the retrieval configuratio
 | Answer relevancy | _not run_ | See known issue below. |
 | Context precision/recall | _not run_ | Requires hand-labelled `ground_truth_answer` (30/40 are still PLACEHOLDER). |
 
-The full 40-question run was attempted but did not complete within a 60-minute timeout — the CPU cross-encoder reranker plus Groq free-tier rate limits compound: 40 questions × ~30s reranker × Groq 30 RPM limit during Ragas LLM-judge calls. A practical eval run requires either:
+The full 40-question run was attempted twice — once locally, once on a Colab T4 GPU. Both runs successfully:
 
-- A GPU for the reranker (5–10x speedup), OR
-- A paid Groq tier with higher RPM, OR
-- A reduced test set (~10 questions) which the current code supports without modification.
+- Built the 19,399-chunk Chroma + BM25 indices end-to-end
+- Loaded the BGE re-ranker (locally `bge-reranker-v2-m3`, on Colab T4 swapped to `cross-encoder/ms-marco-MiniLM-L-6-v2` because the larger model OOMs the 16 GB T4 when combined with Ragas judge activations)
+- Executed the retrieval + generation chain on all 40 questions
+
+Where they didn't complete was the **Ragas judge calls** — Ragas issues ~3 LLM calls per metric per question (12 calls per question for the 4-metric default suite), bringing total LLM call volume to ~500 per eval run. This exceeds:
+
+- **Groq free tier:** 30 RPM and a daily request cap — the eval was rate-limit-throttled
+- **Gemini 2.0 Flash free tier:** has a `limit: 0` cap on new Google AI Studio accounts as of this run
+
+Three documented paths to a complete eval:
+
+1. **Paid Groq tier** — removes the daily cap; full eval finishes in ~10 min on T4
+2. **Self-hosted LLM judge** — point `LLM_PROVIDER` at an Ollama / vLLM endpoint; no API limits
+3. **Reduced test set** — `qa_test_set.jsonl[:10]` works on free Groq; produces statistically thinner but unblocked numbers
 
 ### Known Ragas + Groq integration issue
 
