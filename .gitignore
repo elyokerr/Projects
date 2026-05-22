@@ -256,3 +256,6 @@ Thumbs.db
 filings-rag/data/processed.zip
 filings-rag/data/vector.zip
 03_embedding_index_build.ipynb
+
+# Notebooks should never write data under notebooks/; they should chdir to project root
+filings-rag/notebooks/data/
