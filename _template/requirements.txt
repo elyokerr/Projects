@@ -8,6 +8,13 @@ seaborn>=0.12
 # Notebook environment
 jupyter>=1.0
 ipykernel>=6.25
+jupyter-client>=8.5
+
+# Env vars from .env
+python-dotenv>=1.0
+
+# Linting (used by CI)
+ruff>=0.6
 
 # Optional: gradient boosting
 # xgboost>=2.0
