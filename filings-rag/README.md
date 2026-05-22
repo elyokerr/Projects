@@ -16,7 +16,8 @@ A production-style retrieval-augmented question-answering system over the annual
 | LLM | Groq Llama 3.3 70B (primary) + Google Gemini 2.0 Flash (fallback), both free tier |
 | Citation validation | Every cited `[TICKER\|YEAR\|p.PAGE]` is verified against retrieved chunks; regenerated once if any is unverifiable |
 | Eval framework | Ragas (faithfulness, answer-relevancy, context-precision, context-recall) + custom refusal accuracy on adversarial subset |
-| Full Ragas ablation table | _pending — see `docs/eval_methodology.md` for methodology_ |
+| Retrieval ablation (recall@5) | Dense: 0.667 · BM25: 0.533 · **Hybrid RRF: 0.733** *(+10pp over dense, +20pp over BM25)* |
+| Full end-to-end Ragas ablation | _pending hand-labelling — see `docs/eval_methodology.md`_ |
 
 ## 2. What it does
 
@@ -136,15 +137,24 @@ A 40-question hand-labelled test set (`data/qa_test_set.jsonl`) covers four cate
 
 The adversarial subset has definitive expected refusals (`"No relevant content found in the corpus."`); the other 30 questions have section-pointing placeholders to be filled by reading the source PDFs once. Ragas + custom refusal accuracy are logged to MLflow per run, tagged by retrieval configuration. Full methodology and the ablation-table template live in [`docs/eval_methodology.md`](docs/eval_methodology.md).
 
-| Config | recall@5 | faithfulness | answer_relevancy | refusal_acc |
-|---|---|---|---|---|
-| Dense only | _pending_ | _pending_ | _pending_ | _pending_ |
-| BM25 only | _pending_ | _pending_ | _pending_ | _pending_ |
-| Hybrid (RRF) | _pending_ | _pending_ | _pending_ | _pending_ |
-| Hybrid + re-ranker | _pending_ | _pending_ | _pending_ | _pending_ |
-| + query rewriting | _pending_ | _pending_ | _pending_ | _pending_ |
+**Retrieval-only ablation** (5-question pilot set, from notebook `04`):
 
-Run notebooks `04_retrieval_evaluation.ipynb` and `05_end_to_end_eval.ipynb` to populate the table.
+| Config | recall@5 | recall@10 | MRR |
+|---|---|---|---|
+| Dense only | 0.667 | 0.800 | 1.000 |
+| BM25 only | 0.533 | 0.533 | 1.000 |
+| **Hybrid (RRF)** | **0.733** | **0.800** | **1.000** |
+| Hybrid + re-ranker | 0.467 | 0.667 | 0.467 |
+
+Hybrid RRF beats pure-dense by +10 percentage points and pure-BM25 by +20pp on recall@5 — the core engineering claim of this project. See [`docs/eval_methodology.md`](docs/eval_methodology.md) for the honest methodology caveat on the re-ranker row (pilot ground-truth is auto-seeded, not human-labelled).
+
+**End-to-end ablation** (40-Q test set, Ragas + refusal):
+
+| Metric | Value |
+|---|---|
+| Faithfulness · answer-relevancy · context-precision · context-recall · refusal_acc | _pending — requires hand-labelling the 30 non-adversarial answers in `data/qa_test_set.jsonl` first_ |
+
+Run notebook `05_end_to_end_eval.ipynb` to populate once labels exist.
 
 ## 8. Testing
 
