@@ -6,7 +6,14 @@ through the LCEL chain; renders answers with click-through citations.
 
 import json
 import os
+import sys
 from pathlib import Path
+
+# Ensure the project root is on sys.path so `from src.x import y` works when
+# Streamlit launches the script from inside `app/`. Must precede any `src.*` import.
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
 
 import streamlit as st
 from dotenv import load_dotenv
