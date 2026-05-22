@@ -19,7 +19,7 @@ An end-to-end ML system that predicts which SaaS customers are at risk of cancel
 
 **Stack:** Python · pandas · scikit-learn · XGBoost · MLflow · SHAP · FastAPI · Streamlit · PostgreSQL · Docker Compose · GitHub Actions CI
 
-➡ [Open project](saas-churn-prediction/)
+--> [Open project](saas-churn-prediction/)
 
 ---
 
@@ -37,7 +37,7 @@ A production-style retrieval-augmented question-answering system over the annual
 
 **Stack:** LangChain (LCEL) · ChromaDB · `bm25s` · `bge-small-en-v1.5` (fastembed/ONNX) · `bge-reranker-v2-m3` (CrossEncoder) · Groq Llama 3.3 70B + Gemini 2.0 Flash fallback · PyMuPDF · Ragas · MLflow · Streamlit · Docker · GitHub Actions CI
 
-➡ [Open project](filings-rag/)
+--> [Open project](filings-rag/)
 
 ---
 
