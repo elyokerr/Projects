@@ -54,12 +54,14 @@ def monthly_refresh(target: str = "duckdb", mode: str = "increment") -> dict:
         db_path=DEFAULT_DUCKDB_PATH,
         schema="raw",
         table="nspl",
+        mode="truncate",
     )
     load_parquet_to_duckdb(
         hpi_path,
         db_path=DEFAULT_DUCKDB_PATH,
         schema="raw",
         table="hpi",
+        mode="truncate",
     )
 
     run_dbt("build", target=effective_target, project_dir=PROJECT_ROOT / "dbt_project")

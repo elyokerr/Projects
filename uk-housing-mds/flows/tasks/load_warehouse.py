@@ -21,7 +21,24 @@ def load_parquet_to_duckdb(
     schema: str,
     table: str,
     unique_key: str | None = None,
+    mode: str = "append",
 ) -> None:
+    """Load a Parquet file into a DuckDB table.
+
+    Modes:
+        - "append" (default): create table on first load; insert rows on subsequent
+          loads. If ``unique_key`` is provided, delete matching rows in the target
+          before inserting (merge-like dedup).
+        - "merge": same as append + ``unique_key``. Raises ValueError if no
+          ``unique_key`` is given.
+        - "truncate": DROP TABLE IF EXISTS, then CTAS from the Parquet file.
+          Any ``unique_key`` argument is ignored.
+    """
+    if mode not in {"append", "merge", "truncate"}:
+        raise ValueError(f"Unknown mode: {mode!r}")
+    if mode == "merge" and not unique_key:
+        raise ValueError("mode='merge' requires unique_key")
+
     parquet_path = Path(parquet_path)
     db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -30,6 +47,16 @@ def load_parquet_to_duckdb(
     con.execute("BEGIN")
     try:
         con.execute(f"CREATE SCHEMA IF NOT EXISTS {schema}")
+
+        if mode == "truncate":
+            con.execute(f"DROP TABLE IF EXISTS {schema}.{table}")
+            con.execute(
+                f"CREATE TABLE {schema}.{table} AS "
+                f"SELECT * FROM read_parquet('{parquet_path.as_posix()}')"
+            )
+            con.execute("COMMIT")
+            return
+
         exists = con.sql(
             f"SELECT 1 FROM information_schema.tables "
             f"WHERE table_schema='{schema}' AND table_name='{table}'"

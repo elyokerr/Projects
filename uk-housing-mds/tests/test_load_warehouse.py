@@ -42,6 +42,34 @@ def test_load_rolls_back_on_error(tmp_path):
     assert ("ppd",) not in tables
 
 
+def test_load_truncate_replaces_existing_rows(tmp_path):
+    pq1 = tmp_path / "x1.parquet"
+    pd.DataFrame({"a": [1, 2], "b": ["x", "y"]}).to_parquet(pq1)
+    pq2 = tmp_path / "x2.parquet"
+    pd.DataFrame({"a": [10, 20, 30], "b": ["p", "q", "r"]}).to_parquet(pq2)
+    db = tmp_path / "w.duckdb"
+    load_parquet_to_duckdb(pq1, db, schema="raw", table="t")
+    load_parquet_to_duckdb(pq2, db, schema="raw", table="t", mode="truncate")
+    con = duckdb.connect(str(db))
+    assert con.sql("SELECT count(*) FROM raw.t").fetchone()[0] == 3
+
+
+def test_load_merge_requires_unique_key(tmp_path):
+    pq = tmp_path / "x.parquet"
+    pd.DataFrame({"a": [1]}).to_parquet(pq)
+    db = tmp_path / "w.duckdb"
+    with pytest.raises(ValueError):
+        load_parquet_to_duckdb(pq, db, schema="raw", table="t", mode="merge")
+
+
+def test_load_unknown_mode_raises(tmp_path):
+    pq = tmp_path / "x.parquet"
+    pd.DataFrame({"a": [1]}).to_parquet(pq)
+    db = tmp_path / "w.duckdb"
+    with pytest.raises(ValueError):
+        load_parquet_to_duckdb(pq, db, schema="raw", table="t", mode="foobar")
+
+
 def test_load_to_bigquery_with_unique_key_does_merge_and_drops_staging(tmp_path):
     """Unit test: BigQuery append+unique_key path loads staging, runs MERGE, drops staging."""
     fake_parquet = tmp_path / "ppd.parquet"
