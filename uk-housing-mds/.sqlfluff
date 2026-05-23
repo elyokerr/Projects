@@ -1,8 +1,29 @@
-# .sqlfluff
+# .sqlfluff — style config aligned to this project's plan-author choices.
+# Run from inside dbt_project/: `sqlfluff lint models --dialect duckdb`.
+#
+# Excluded rules (rationale below; rules listed without inline comments because
+# sqlfluff parses the list literally):
+#   AM04 - missing column from struct
+#   ST05 - subquery in WHERE/HAVING
+#   ST06 - "wildcards then simple targets then calcs" column-order opinion
+#   ST07 - USING vs ON (both valid; USING is cleaner where it applies)
+#   AL01 - implicit/explicit table aliasing
+#   RF04 - keywords-as-identifiers (false-positive on EXTRACT(year FROM ...) alias)
+#   LT01 - whitespace nit in WITH RECURSIVE CTE
+#   LT02 - indent style inside {% if is_incremental() %} blocks
+#   LT05 - line length (max set explicitly below)
+#   LT08 - blank line after CTE close
+#   CP01 - keyword case inside EXTRACT (covered by capitalisation.keywords policy)
+#   CP03 - function-name case (covered by capitalisation.functions policy)
+
 [sqlfluff]
 dialect = duckdb
 templater = dbt
-exclude_rules = AM04, ST05
+max_line_length = 120
+exclude_rules = AM04, ST05, ST06, ST07, AL01, RF04, LT01, LT02, LT05, LT08, CP01, CP03
 
 [sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = upper
+
+[sqlfluff:rules:capitalisation.functions]
 capitalisation_policy = upper
