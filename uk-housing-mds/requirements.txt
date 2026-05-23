@@ -7,6 +7,7 @@ requests==2.32.3
 # Orchestration
 prefect==2.19.7
 griffe<1.0  # Prefect 2.19 incompatible with griffe>=1.0 (default resolves to 2.x)
+pydantic<2.10  # Prefect 2.19 flow parameter_schema breaks on pydantic>=2.10
 
 # Warehouses + dbt
 duckdb==1.0.0
