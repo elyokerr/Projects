@@ -11,6 +11,7 @@ data/raw_archive/
 data/landing/
 data/duckdb/
 *.zip
+!tests/fixtures/*.zip
 
 # dbt working dirs
 dbt_project/target/
