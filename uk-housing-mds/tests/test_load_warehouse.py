@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import sys
+from unittest.mock import MagicMock, patch
+
 import duckdb
 import pandas as pd
 import pytest
@@ -37,3 +40,61 @@ def test_load_rolls_back_on_error(tmp_path):
     con = duckdb.connect(str(db))
     tables = con.sql("SHOW TABLES").fetchall()
     assert ("ppd",) not in tables
+
+
+def test_load_to_bigquery_with_unique_key_does_merge_and_drops_staging(tmp_path):
+    """Unit test: BigQuery append+unique_key path loads staging, runs MERGE, drops staging."""
+    fake_parquet = tmp_path / "ppd.parquet"
+    fake_parquet.write_bytes(b"placeholder")
+
+    fake_client = MagicMock()
+    fake_load_job = MagicMock()
+    fake_query_job = MagicMock()
+    fake_client.load_table_from_file.return_value = fake_load_job
+    fake_client.query.return_value = fake_query_job
+
+    fake_bigquery = MagicMock()
+    fake_bigquery.Client.return_value = fake_client
+    fake_bigquery.SourceFormat.PARQUET = "PARQUET"
+    fake_bigquery.WriteDisposition.WRITE_TRUNCATE = "WRITE_TRUNCATE"
+    fake_bigquery.WriteDisposition.WRITE_APPEND = "WRITE_APPEND"
+    fake_bigquery.LoadJobConfig = MagicMock()
+
+    fake_gcloud = MagicMock()
+    fake_gcloud.bigquery = fake_bigquery
+    fake_exceptions = MagicMock()
+    fake_exceptions.Forbidden = type("Forbidden", (Exception,), {})
+
+    with patch.dict(
+        sys.modules,
+        {
+            "google": MagicMock(),
+            "google.cloud": fake_gcloud,
+            "google.cloud.bigquery": fake_bigquery,
+            "google.api_core": MagicMock(exceptions=fake_exceptions),
+            "google.api_core.exceptions": fake_exceptions,
+        },
+    ):
+        from flows.tasks.load_warehouse import load_parquet_to_bigquery
+
+        load_parquet_to_bigquery(
+            fake_parquet,
+            "proj",
+            "ds",
+            "ppd",
+            unique_key="id",
+            mode="append",
+        )
+
+    # Client constructed once
+    assert fake_bigquery.Client.call_count == 1
+
+    # Load was issued to the staging table
+    load_call = fake_client.load_table_from_file.call_args
+    assert load_call.args[1] == "proj.ds.raw_inc_ppd"
+
+    # query() was called with MERGE referencing the target table, and DROP TABLE
+    # referencing the staging table.
+    queries = [c.args[0] for c in fake_client.query.call_args_list]
+    assert any("MERGE" in q and "proj.ds.ppd" in q for q in queries)
+    assert any("DROP TABLE" in q and "raw_inc_ppd" in q for q in queries)
