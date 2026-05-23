@@ -1,0 +1,45 @@
+# User action required: in the GitHub repo settings, enable Pages with
+# "Source = GitHub Actions" before this workflow can deploy successfully.
+name: publish-evidence-uk-housing-mds
+on:
+  workflow_run:
+    workflows: ['monthly-refresh-uk-housing-mds']
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: uk-housing-mds
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Download latest DuckDB release asset
+        run: |
+          mkdir -p data/duckdb
+          gh release download --pattern '*.duckdb' --dir data/duckdb/ || echo "no release yet"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build Evidence site
+        working-directory: uk-housing-mds/evidence
+        run: |
+          npm ci
+          npm run sources
+          npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: uk-housing-mds/evidence/build
+      - id: deployment
+        uses: actions/deploy-pages@v4
