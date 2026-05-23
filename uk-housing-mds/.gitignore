@@ -1,0 +1,35 @@
+# .gitignore
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+.ruff_cache/
+
+# Data artefacts (working data, regenerated)
+data/raw_archive/
+data/landing/
+data/duckdb/
+*.zip
+
+# dbt working dirs
+dbt_project/target/
+dbt_project/dbt_packages/
+dbt_project/logs/
+profiles.yml
+
+# GE working
+great_expectations/uncommitted/
+
+# Evidence
+evidence/.evidence/
+evidence/node_modules/
+evidence/build/
+
+# Secrets
+.env
+*.json
+!tests/fixtures/*.json
+
+# Notebook accidents
+notebooks/data/
