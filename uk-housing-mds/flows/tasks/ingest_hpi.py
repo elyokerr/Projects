@@ -1,11 +1,15 @@
 """HPI (UK House Price Index) ingest task.
 
-The HPI full file is published monthly. The URL follows the pattern
-`https://publishing.landregistry.gov.uk/full-file/UK-HPI-full-file-YYYY-MM.csv`.
+The HPI full file is published monthly by HM Land Registry. URL pattern verified
+2026-05-24 against the March 2026 release linked from gov.uk:
+    https://publicdata.landregistry.gov.uk/market-trend-data/house-price-index-data/UK-HPI-full-file-YYYY-MM.csv
 
-TBD: Update `_HPI_URL_TEMPLATE` and/or the resolution logic to the latest
-YYYY-MM release before first prod run. Until then, `mode="fixture"` is the
-only verified mode.
+The most recent release URL is also discoverable from
+https://www.gov.uk/government/statistical-data-sets/uk-house-price-index-data-downloads-<MONTH>-<YYYY>
+where <MONTH> is the month of the data (typically published ~6 weeks after).
+
+`mode="monthly"` resolves to the latest released month; override `_HPI_STAMP_OVERRIDE`
+to force a specific YYYY-MM if the latest auto-resolution lags publication.
 """
 
 from __future__ import annotations
@@ -19,10 +23,13 @@ from prefect import task
 from src.housing_mds.download import download_file, verify_csv_magic
 from src.housing_mds.parquet_io import csv_to_parquet
 
-# Update YYYY-MM placeholder to the latest published release before first prod run.
+# Verified working URL pattern (HM Land Registry public CDN). Trailing UTM
+# parameters are accepted but stripped here.
 _HPI_URL_TEMPLATE = (
-    "https://publishing.landregistry.gov.uk/full-file/UK-HPI-full-file-{stamp}.csv"
+    "https://publicdata.landregistry.gov.uk/market-trend-data/"
+    "house-price-index-data/UK-HPI-full-file-{stamp}.csv"
 )
+_HPI_STAMP_OVERRIDE: str | None = None  # e.g. "2026-03" to pin a specific release
 
 _HPI_DTYPES = {
     "area_code": "string",

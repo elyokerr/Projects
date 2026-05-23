@@ -4,9 +4,23 @@ NSPL is published as a ZIP on the ONS Open Geography Portal. The CSV of
 interest is `Data/NSPL_*.csv`. Extraction uses Python's `zipfile` (NOT
 PowerShell Compress-Archive) — see portfolio gotcha #6.
 
-TBD: Update `_NSPL_URL` to the latest NSPL release URL from the ONS Open
-Geography Portal before first prod run. Until then, `mode="fixture"` is the
-only supported mode.
+URL discovery (verified 2026-05-24): the ONS Open Geography Portal hosts NSPL
+as an ArcGIS dataset. Browse https://geoportal.statistics.gov.uk/search?tags=NSPL
+or data.gov.uk for the current release; click into the dataset and copy the
+"Download CSV" URL — pattern is roughly
+    https://open-geography-portalx-ons.hub.arcgis.com/api/download/v1/items/<ITEM-ID>/csv?layers=0
+(`<ITEM-ID>` changes per release; Feb 2026 = 419355d8a54741f19025ba97e35da55a).
+
+LIMITATION: the verified URL above returns a flat CSV ("hosted table" variant),
+NOT the legacy ZIP-with-`Data/NSPL_*.csv` that the current `quarterly`-mode
+implementation expects. Two ways forward before first prod run:
+  (a) Find the legacy bulk-ZIP URL (Open Geography Portal item page → "Open in
+      ArcGIS Hub" → bulk download). It does still exist for some releases.
+  (b) Refactor this task to handle the CSV directly: drop the `zipfile.ZipFile`
+      branch, `verify_zip_magic` → `verify_csv_magic`, write parquet from the
+      single CSV. Column set is similar but verify schema against `_NSPL_DTYPES`.
+
+Until either path is wired in, `mode="fixture"` is the only verified mode.
 """
 
 from __future__ import annotations
@@ -21,7 +35,12 @@ from prefect import task
 from src.housing_mds.download import download_file, verify_zip_magic
 from src.housing_mds.parquet_io import csv_to_parquet
 
-_NSPL_URL = "TBD"  # see module docstring
+# Feb 2026 release, CSV variant — refactor the task to CSV before using (see docstring).
+_NSPL_URL = "TBD"  # see module docstring; verified URL candidate stored below.
+_NSPL_URL_CANDIDATE = (
+    "https://open-geography-portalx-ons.hub.arcgis.com/api/download/v1/items/"
+    "419355d8a54741f19025ba97e35da55a/csv?layers=0"
+)
 
 _NSPL_DTYPES = {
     "pcd": "string",
