@@ -10,6 +10,7 @@ The plain function ``build_evidence`` is what tests call directly;
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -57,12 +58,17 @@ def build_evidence(
     env = os.environ.copy()
     env["DUCKDB_PATH"] = str(effective_warehouse)
 
+    # Resolve npm explicitly. On Windows, `npm` is `npm.cmd` (a batch file);
+    # `subprocess.run(["npm", ...])` without shell=True fails because
+    # CreateProcess only finds .exe, not .cmd. shutil.which finds both.
+    npm = shutil.which("npm") or "npm"
     completed = subprocess.run(
-        ["npm", "run", "build", "--prefix", str(effective_evidence_dir)],
+        [npm, "run", "build", "--prefix", str(effective_evidence_dir)],
         check=False,
         capture_output=True,
         text=True,
         env=env,
+        shell=False,
     )
     if completed.stdout:
         print(completed.stdout, flush=True)

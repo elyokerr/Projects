@@ -35,9 +35,16 @@ def monthly_refresh(target: str = "duckdb", mode: str = "increment") -> dict:
     log = get_run_logger()
     log.info("monthly_refresh target=%s mode=%s", target, mode)
 
-    ppd_path = ingest_ppd(PROJECT_ROOT / "data" / "landing" / "ppd", mode=mode)
-    nspl_path = ingest_nspl(PROJECT_ROOT / "data" / "landing" / "nspl")
-    hpi_path = ingest_hpi(PROJECT_ROOT / "data" / "landing" / "hpi")
+    # Flow mode "fixture" propagates to all three ingest tasks; otherwise each
+    # task uses its own default (PPD "increment", NSPL "quarterly", HPI "monthly").
+    if mode == "fixture":
+        ppd_path = ingest_ppd(PROJECT_ROOT / "data" / "landing" / "ppd", mode="fixture")
+        nspl_path = ingest_nspl(PROJECT_ROOT / "data" / "landing" / "nspl", mode="fixture")
+        hpi_path = ingest_hpi(PROJECT_ROOT / "data" / "landing" / "hpi", mode="fixture")
+    else:
+        ppd_path = ingest_ppd(PROJECT_ROOT / "data" / "landing" / "ppd", mode=mode)
+        nspl_path = ingest_nspl(PROJECT_ROOT / "data" / "landing" / "nspl")
+        hpi_path = ingest_hpi(PROJECT_ROOT / "data" / "landing" / "hpi")
 
     run_landing_checkpoint("landing_all")
 
@@ -64,6 +71,12 @@ def monthly_refresh(target: str = "duckdb", mode: str = "increment") -> dict:
         mode="truncate",
     )
 
+    # dbt's profiles.yml resolves `../data/duckdb/...` from CWD, not from
+    # --project-dir. Pin DUCKDB_PATH absolutely so the env_var template wins.
+    os.environ.setdefault(
+        "DUCKDB_PATH",
+        str(PROJECT_ROOT / "data" / "duckdb" / "housing.duckdb"),
+    )
     run_dbt("build", target=effective_target, project_dir=PROJECT_ROOT / "dbt_project")
 
     build_dir = build_evidence(
