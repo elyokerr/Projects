@@ -1,0 +1,17 @@
+uk_housing_mds:
+  target: duckdb
+  outputs:
+    duckdb:
+      type: duckdb
+      path: "{{ env_var('DUCKDB_PATH', '../data/duckdb/housing.duckdb') }}"
+      schema: main
+      threads: 4
+    bigquery:
+      type: bigquery
+      method: service-account
+      keyfile: "{{ env_var('GCP_SA_KEY_PATH') }}"
+      project: "{{ env_var('BQ_PROJECT_ID') }}"
+      dataset: housing_mds
+      threads: 4
+      timeout_seconds: 300
+      location: EU
