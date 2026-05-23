@@ -1,0 +1,33 @@
+name: landing_all
+config_version: 1.0
+template_name:
+module_name: great_expectations.checkpoint
+class_name: Checkpoint
+run_name_template:
+expectation_suite_name:
+batch_request: {}
+action_list:
+  - name: store_validation_result
+    action:
+      class_name: StoreValidationResultAction
+  - name: update_data_docs
+    action:
+      class_name: UpdateDataDocsAction
+evaluation_parameters: {}
+runtime_configuration: {}
+validations:
+  - batch_request:
+      datasource_name: landing_ppd
+      data_asset_name: ppd
+    expectation_suite_name: ppd_landing
+  - batch_request:
+      datasource_name: landing_nspl
+      data_asset_name: nspl
+    expectation_suite_name: nspl_landing
+  - batch_request:
+      datasource_name: landing_hpi
+      data_asset_name: hpi
+    expectation_suite_name: hpi_landing
+profilers: []
+ge_cloud_id:
+expectation_suite_ge_cloud_id:
