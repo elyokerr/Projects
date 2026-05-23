@@ -34,6 +34,8 @@ evidence/build/
 *.json
 !tests/fixtures/*.json
 !great_expectations/expectations/*.json
+!evidence/package.json
+!evidence/package-lock.json
 
 # Notebook accidents
 notebooks/data/
