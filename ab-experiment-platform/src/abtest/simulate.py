@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from scipy.special import expit, logit
 
 from src.abtest.data import ExperimentData
 
@@ -14,11 +13,13 @@ def simulate_conversion(*, n_per_arm: int, base_rate: float, absolute_lift: floa
     n = n_per_arm
     variant = np.array(["control"] * n + ["treatment"] * n)
     latent = rng.normal(size=2 * n)
-    p = np.where(variant == "control", base_rate, base_rate + absolute_lift)
-    p = np.clip(p, 1e-6, 1 - 1e-6)
-    if covariate_corr > 0:
-        shift = covariate_corr * 2.5 * latent
-        p = expit(logit(p) + shift - shift.mean())
+    # Baseline conversion probability varies with the latent factor, additively on
+    # the probability scale. This lets a pre-period covariate correlate with the
+    # outcome WITHOUT distorting the additive treatment effect (a logit shift would
+    # not preserve an additive lift, biasing CUPED's recovered effect downward).
+    base_p = base_rate + covariate_corr * 0.25 * latent
+    lift = np.where(variant == "treatment", absolute_lift, 0.0)
+    p = np.clip(base_p + lift, 1e-6, 1 - 1e-6)
     converted = rng.binomial(1, p)
     pre_cov = latent + rng.normal(scale=0.5, size=2 * n)
     df = pd.DataFrame({
