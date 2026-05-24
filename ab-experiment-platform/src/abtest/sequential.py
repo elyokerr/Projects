@@ -55,3 +55,13 @@ def naive_peeking_fpr(*, base_rate: float, n_max: int, look_every: int = 500,
         if (s + 1) % 50 == 0:
             print(f"  naive-peeking sim {s + 1}/{n_sims}", flush=True)
     return sig_count / n_sims
+
+
+def obrien_fleming_bounds(*, n_looks: int, alpha: float = 0.05) -> list[float]:
+    ks = np.arange(1, n_looks + 1)
+    t = ks / n_looks
+    z_a = stats.norm.ppf(1 - alpha / 2)
+    spend = 2 - 2 * stats.norm.cdf(z_a / np.sqrt(t))
+    inc = np.diff(np.concatenate([[0.0], spend]))
+    bounds = stats.norm.ppf(1 - inc / 2)
+    return [float(b) for b in bounds]
