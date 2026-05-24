@@ -1,0 +1,27 @@
+version: 2
+models:
+  - name: fct_transactions
+    columns:
+      - name: transaction_unique_id
+        tests: [unique, not_null]
+      - name: transfer_date
+        tests: [not_null]
+      - name: postcode
+        tests:
+          - relationships:
+              to: ref('dim_postcode')
+              field: postcode
+              config:
+                severity: warn
+  - name: dim_postcode
+    columns:
+      - name: postcode
+        tests: [unique, not_null]
+  - name: dim_local_authority
+    columns:
+      - name: local_authority_code
+        tests: [unique, not_null]
+  - name: dim_date
+    columns:
+      - name: date_day
+        tests: [unique, not_null]

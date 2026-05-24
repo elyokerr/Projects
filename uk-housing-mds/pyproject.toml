@@ -1,0 +1,13 @@
+# pyproject.toml
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["notebooks/_nb_header.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = ["slow: end-to-end smoke tests"]

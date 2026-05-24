@@ -6,7 +6,7 @@ This repository is a curated collection of data-science and machine-learning pro
 
 ## Adding a new project
 
-1. **Copy the template** — duplicate `_template/` into a new folder at the repo root.
+1. **Copy the template** - duplicate `_template/` into a new folder at the repo root.
 2. **Name the folder in `kebab-case`**, describing what the project *does*. Examples:
    - `saas-churn-prediction`
    - `urban-jungle-price-estimator`
@@ -65,15 +65,15 @@ Not every project needs every folder. Omit ones you don't use, but keep the name
 
 Every project README should follow this structure so visitors know what to expect:
 
-1. **Title + one-line tagline** — what the project does in plain English
-2. **Hero results** — a small table of 3–5 headline metrics
-3. **The business problem** — *why* this matters
-4. **What this demonstrates** — skills shown, with pointers to files
-5. **Quick start** — how to run it (1–2 commands)
-6. **Project structure** — annotated tree of the project folder
-7. **Methodology** — how the solution works, step-by-step
-8. **Tech stack** — table of tools used and why
-9. **Limitations & next steps** — honest assessment of what could be better
+1. **Title + one-line tagline** - what the project does in plain English
+2. **Hero results** - a small table of 3–5 headline metrics
+3. **The business problem** - *why* this matters
+4. **What this demonstrates** - skills shown, with pointers to files
+5. **Quick start** - how to run it (1–2 commands)
+6. **Project structure** - annotated tree of the project folder
+7. **Methodology** - how the solution works, step-by-step
+8. **Tech stack** - table of tools used and why
+9. **Limitations & next steps** - honest assessment of what could be better
 
 A starter version of this lives in `_template/README.md`.
 
@@ -96,8 +96,8 @@ A starter version of this lives in `_template/README.md`.
 
 The root `.gitignore` already excludes:
 
-- `mlruns/`, `mlartifacts/` — MLflow experiment artifacts (regenerated locally)
-- `data/raw/`, `data/interim/`, `data/processed/`, `data/external/` — keep the folder structure, ignore the contents
+- `mlruns/`, `mlartifacts/` - MLflow experiment artifacts (regenerated locally)
+- `data/raw/`, `data/interim/`, `data/processed/`, `data/external/` - keep the folder structure, ignore the contents
 - `__pycache__/`, `.ipynb_checkpoints/`, `.pytest_cache/`
 - IDE clutter (`.vscode/`, `.idea/`, `.claude/`)
 - Common binary blobs (`*.bin`, `*.h5`)

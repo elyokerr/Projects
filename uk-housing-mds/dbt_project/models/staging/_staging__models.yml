@@ -1,0 +1,26 @@
+version: 2
+models:
+  - name: stg_ppd
+    columns:
+      - name: transaction_unique_id
+        tests: [unique, not_null]
+      - name: postcode
+        tests: [not_null]
+      - name: property_type
+        tests:
+          - accepted_values:
+              values: ['D', 'S', 'T', 'F', 'O']
+      - name: tenure
+        tests:
+          - accepted_values:
+              values: ['F', 'L', 'U']
+  - name: stg_nspl
+    columns:
+      - name: postcode
+        tests: [unique, not_null]
+  - name: stg_hpi
+    columns:
+      - name: area_code
+        tests: [not_null]
+      - name: index_date
+        tests: [not_null]
