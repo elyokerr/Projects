@@ -2,6 +2,8 @@
 
 > A scheduled batch ELT pipeline that ingests UK Land Registry PPD, ONS NSPL, and UK HPI, models them through dbt against DuckDB (dev/CI) and BigQuery (prod), validates them with Great Expectations + dbt tests, and publishes an Evidence.dev analytics site to GitHub Pages.
 
+![Evidence homepage — hero and headline stats](reports/figures/01_home_hero.png)
+
 ---
 
 ## Hero Results
@@ -16,6 +18,30 @@
 | Fixture corpus (CI / dev) | **50 transactions · 10 postcodes · 5 local authorities** (date range 2020-03-14 to 2025-12-27) |
 
 > **Note on metrics.** All numbers above are from the deterministic fixture corpus committed under `tests/fixtures/`. Production-warehouse metrics (full PPD backfill: ~27 M transactions; freshness lag; per-source row counts) will land after the first BigQuery run (see *Limitations & next steps*).
+
+---
+
+## The BI site
+
+The pipeline's user-facing output is an Evidence.dev static site published to GitHub Pages. Four routes:
+
+| Page | Screenshot |
+|---|---|
+| Homepage — headline stats + featured chart + navigation | [`01_home_hero.png`](reports/figures/01_home_hero.png) · [`02_home_charts.png`](reports/figures/02_home_charts.png) · [`03_home_nav.png`](reports/figures/03_home_nav.png) |
+| Regional trends — region dropdown + monthly median price + LA volume | [`04_regional_trends.png`](reports/figures/04_regional_trends.png) |
+| Premium vs HPI benchmark — LA dropdown + LA-vs-HPI line + top-10 premium table | [`05_premium_vs_benchmark.png`](reports/figures/05_premium_vs_benchmark.png) |
+| Data quality — pipeline health BigValue cards | [`06_data_quality.png`](reports/figures/06_data_quality.png) |
+
+<table>
+<tr>
+<td><img src="reports/figures/02_home_charts.png" alt="Homepage charts" /></td>
+<td><img src="reports/figures/04_regional_trends.png" alt="Regional trends" /></td>
+</tr>
+<tr>
+<td><img src="reports/figures/05_premium_vs_benchmark.png" alt="Premium vs benchmark" /></td>
+<td><img src="reports/figures/06_data_quality.png" alt="Data quality" /></td>
+</tr>
+</table>
 
 ---
 
