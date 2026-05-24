@@ -1,0 +1,30 @@
+name: ab-experiment-platform CI
+
+on:
+  push:
+    branches: [main, "ab-experiment-platform/**"]
+    paths:
+      - "ab-experiment-platform/**"
+      - ".github/workflows/ab-experiment-platform-ci.yml"
+  pull_request:
+    paths:
+      - "ab-experiment-platform/**"
+      - ".github/workflows/ab-experiment-platform-ci.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ab-experiment-platform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Lint
+        run: ruff check src tests app
+      - name: Test
+        run: pytest tests -v
