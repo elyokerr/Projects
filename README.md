@@ -41,6 +41,24 @@ A production-style retrieval-augmented question-answering system over the annual
 
 ---
 
+### [`ab-experiment-platform/`](ab-experiment-platform/) - A/B Experiment Platform
+
+A library-first online-experimentation toolkit covering the full A/B test lifecycle: power/sample-size design, sample-ratio-mismatch and A/A health checks, frequentist (z-test, Welch, Mann-Whitney) and Bayesian (Beta-Binomial) analysis, CUPED variance reduction, **always-valid sequential testing (mSPRT)**, and a ship/no-ship decision engine. A built-in ground-truth simulator lets the test suite prove the statistics are correct. Streamlit app + 6 notebooks.
+
+| Highlight | Value |
+|---|---|
+| Sequential monitoring false-positive rate | **~31% (naive peeking) → ~4% (mSPRT)** at nominal 5% |
+| CUPED variance reduction | **~10%** with a correlated pre-period covariate |
+| Estimator CI coverage (500 simulated experiments) | **~96%** for nominal 95% |
+| Power calibration | **80.0% predicted vs ~79% empirical** at the designed n |
+| Tests | **34 unit tests** + simulation-based correctness validation + e2e smoke |
+
+**Stack:** Python 3.11 · NumPy · SciPy · statsmodels · pandas · Streamlit · Plotly · matplotlib · pytest · ruff · Docker · GitHub Actions · Streamlit Community Cloud
+
+--> [Open project](ab-experiment-platform/)
+
+---
+
 ## How this repo is organised
 
 ```
@@ -53,7 +71,8 @@ Projects/
 ├── _template/             ← Skeleton for new projects
 │
 ├── saas-churn-prediction/
-└── filings-rag/
+├── filings-rag/
+└── ab-experiment-platform/
 ```
 
 Every project folder uses the same internal layout:
