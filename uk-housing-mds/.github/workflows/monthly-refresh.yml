@@ -1,0 +1,63 @@
+name: monthly-refresh-uk-housing-mds
+on:
+  schedule:
+    - cron: '0 6 1 * *'
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: uk-housing-mds
+    permissions:
+      contents: write  # for release upload
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: uk-housing-mds/requirements.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Python deps
+        run: pip install -r requirements.txt
+      - name: Setup dbt profile
+        run: cp dbt_project/profiles.yml.example dbt_project/profiles.yml
+      - name: Detect warehouse target
+        id: detect
+        run: |
+          if [ -n "${{ secrets.GCP_SA_KEY }}" ]; then
+            echo "target=bigquery" >> $GITHUB_OUTPUT
+          else
+            echo "target=duckdb" >> $GITHUB_OUTPUT
+          fi
+      - name: Write GCP creds (if available)
+        if: steps.detect.outputs.target == 'bigquery'
+        run: echo '${{ secrets.GCP_SA_KEY }}' > /tmp/gcp.json
+      - name: Run monthly refresh
+        env:
+          DBT_TARGET: ${{ steps.detect.outputs.target }}
+          GCP_SA_KEY_PATH: /tmp/gcp.json
+          BQ_PROJECT_ID: ${{ secrets.BQ_PROJECT_ID }}
+          DUCKDB_PATH: ../data/duckdb/housing.duckdb
+        run: python -m flows.monthly_refresh
+      - name: Install evidence deps and build
+        working-directory: uk-housing-mds/evidence
+        run: |
+          npm ci
+          npm run sources
+          npm run build
+      - name: Tag and release DuckDB artifact
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: housing-${{ github.run_number }}
+          files: uk-housing-mds/data/duckdb/housing.duckdb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: uk-housing-mds/evidence/build

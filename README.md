@@ -41,6 +41,25 @@ A production-style retrieval-augmented question-answering system over the annual
 
 ---
 
+### [`uk-housing-mds/`](uk-housing-mds/) - UK Housing Market Modern Data Stack
+
+A scheduled batch ELT pipeline over UK Land Registry Price Paid Data, ONS NSPL, and UK HPI. Dual-warehouse (DuckDB local / BigQuery production) with profile-switched dbt models, Prefect orchestration on GitHub Actions cron, Great Expectations landing-zone validation, and an Evidence.dev analytics site auto-published to GitHub Pages.
+
+| Highlight | Value |
+|---|---|
+| dbt project | **11 models** (5-layer) · **38 tests** passing |
+| Data quality | **3 GE landing suites** + 3 singular dbt tests + 1 checkpoint |
+| Orchestration | **Prefect** + **GitHub Actions** monthly cron |
+| Warehouse | **DuckDB** dev/CI · **BigQuery free tier** prod (quota-aware fallback) |
+| BI | **Evidence.dev** static site → GitHub Pages (4 routes) |
+| Verified | **End-to-end fixture smoke** passes in ~4m30s |
+
+**Stack:** Python · Prefect · dbt-core (`dbt-duckdb` + `dbt-bigquery`) · DuckDB · BigQuery · Great Expectations · Evidence.dev · GitHub Actions · `ruff` · `sqlfluff`
+
+--> [Open project](uk-housing-mds/)
+
+---
+
 ## How this repo is organised
 
 ```
@@ -53,7 +72,8 @@ Projects/
 ├── _template/             ← Skeleton for new projects
 │
 ├── saas-churn-prediction/
-└── filings-rag/
+├── filings-rag/
+└── uk-housing-mds/
 ```
 
 Every project folder uses the same internal layout:

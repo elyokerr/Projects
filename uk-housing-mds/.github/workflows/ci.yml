@@ -1,0 +1,48 @@
+name: ci-uk-housing-mds
+on:
+  push:
+    paths: ['uk-housing-mds/**']
+  pull_request:
+    paths: ['uk-housing-mds/**']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: uk-housing-mds
+    env:
+      DUCKDB_PATH: ../data/duckdb/housing.duckdb
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: uk-housing-mds/requirements.txt
+      - name: Install Python deps
+        run: pip install -r requirements.txt
+      - name: Ruff lint
+        run: ruff check src tests flows scripts
+      - name: Setup dbt profile
+        run: cp dbt_project/profiles.yml.example dbt_project/profiles.yml
+      - name: dbt deps
+        working-directory: uk-housing-mds/dbt_project
+        run: dbt deps --profiles-dir .
+      - name: SQLFluff lint
+        working-directory: uk-housing-mds/dbt_project
+        run: sqlfluff lint models tests --dialect duckdb
+      - name: Generate fixtures
+        run: python scripts/build_fixtures.py
+      - name: Ingest fixtures (PPD/NSPL/HPI in fixture mode)
+        run: |
+          python -c "from pathlib import Path; from flows.tasks.ingest_ppd import ingest_ppd; ingest_ppd.fn(Path('data/landing/ppd'), mode='fixture')"
+          python -c "from pathlib import Path; from flows.tasks.ingest_nspl import ingest_nspl; ingest_nspl.fn(Path('data/landing/nspl'), mode='fixture')"
+          python -c "from pathlib import Path; from flows.tasks.ingest_hpi import ingest_hpi; ingest_hpi.fn(Path('data/landing/hpi'), mode='fixture')"
+      - name: Load fixtures into DuckDB
+        run: python scripts/load_fixtures_to_duckdb.py
+      - name: dbt build
+        working-directory: uk-housing-mds/dbt_project
+        run: dbt build --target duckdb --profiles-dir .
+      - name: pytest (excludes slow smoke by default)
+        run: pytest tests -v

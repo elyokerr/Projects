@@ -1,0 +1,4 @@
+name: housing
+type: duckdb
+options:
+  filename: ../../../data/duckdb/housing.duckdb
