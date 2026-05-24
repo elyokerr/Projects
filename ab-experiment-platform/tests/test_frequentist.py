@@ -49,3 +49,22 @@ def test_mann_whitney_pvalue_in_range():
     from src.abtest.frequentist import mann_whitney
     r = mann_whitney(_continuous(0.5, 2, n=500), "value")
     assert 0.0 <= r.p_value <= 1.0
+
+
+def test_bonferroni_multiplies_by_n():
+    from src.abtest.frequentist import correct
+    res = correct([0.01, 0.04, 0.03, 0.005], method="bonferroni")
+    corrected = [c for c, _ in res]
+    assert abs(corrected[0] - 0.04) < 1e-9
+    assert abs(corrected[3] - 0.02) < 1e-9
+
+
+def test_bh_matches_statsmodels():
+    from statsmodels.stats.multitest import multipletests
+
+    from src.abtest.frequentist import correct
+    pvals = [0.01, 0.04, 0.03, 0.005]
+    res = correct(pvals, method="bh")
+    _, expected, _, _ = multipletests(pvals, method="fdr_bh")
+    got = [c for c, _ in res]
+    assert all(abs(g - e) < 1e-9 for g, e in zip(got, expected))

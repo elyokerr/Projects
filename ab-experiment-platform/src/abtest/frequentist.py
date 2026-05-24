@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 from scipy import stats
+from statsmodels.stats.multitest import multipletests
 
 from src.abtest.data import ExperimentData
 from src.abtest.results import FrequentistResult
@@ -70,3 +71,13 @@ def mann_whitney(data: ExperimentData, metric: str,
         ci_low=float("nan"), ci_high=float("nan"), p_value=float(p_value),
         significant=sig, test="mann_whitney",
         verdict=("significant difference" if sig else "no significant difference"))
+
+
+def correct(p_values: list[float], method: str = "bh",
+            alpha: float = 0.05) -> list[tuple[float, bool]]:
+    mapping = {"bonferroni": "bonferroni", "bh": "fdr_bh"}
+    if method not in mapping:
+        raise ValueError(f"unknown method: {method}")
+    reject, p_corr, _, _ = multipletests(p_values, alpha=alpha,
+                                         method=mapping[method])
+    return [(float(p), bool(r)) for p, r in zip(p_corr, reject)]
