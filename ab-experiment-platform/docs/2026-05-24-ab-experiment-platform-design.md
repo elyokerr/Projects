@@ -1,4 +1,4 @@
-# A/B Experiment Platform — Online Experimentation & Causal Analysis Toolkit
+# A/B Experiment Platform - Online Experimentation & Causal Analysis Toolkit
 
 **Design document · 2026-05-24**
 
@@ -18,7 +18,7 @@ The platform encodes the correct workflow end to end. It tells the analyst how l
 
 | User | How they consume the project |
 |---|---|
-| Product / growth analyst | Uses the Streamlit app to design an experiment, upload its data, run health checks and analysis, and read the ship / no-ship recommendation — no statistics expertise required. |
+| Product / growth analyst | Uses the Streamlit app to design an experiment, upload its data, run health checks and analysis, and read the ship / no-ship recommendation - no statistics expertise required. |
 | Data scientist | Imports `src/abtest/` as a tested Python library and calls the pure analysis functions directly inside their own pipeline or notebook. |
 | Engineer reviewing the repository | Reads the module boundaries, the data/result contracts, and the simulation-based validation tests that assert the methods are correct. |
 
@@ -52,7 +52,7 @@ The entire stack is free, CPU-only, and runs on a basic laptop; no GPU or Colab 
 
 ## 6. Architecture
 
-All statistical logic is implemented as pure functions that accept an `ExperimentData` object and return a typed result object. The application and notebooks construct `ExperimentData`, call these functions, and render the returned results — they hold no statistical logic themselves.
+All statistical logic is implemented as pure functions that accept an `ExperimentData` object and return a typed result object. The application and notebooks construct `ExperimentData`, call these functions, and render the returned results - they hold no statistical logic themselves.
 
 ```
                 ┌─────────────────────────────────────────┐
@@ -81,17 +81,17 @@ All statistical logic is implemented as pure functions that accept an `Experimen
 
 **Module responsibilities.**
 
-- `data.py` — the `ExperimentData` contract, CSV loaders, and input validation.
-- `design.py` — statistical power, minimum detectable effect, required sample size, and experiment-duration estimation.
-- `health.py` — sample-ratio-mismatch test (chi-square) and an A/A test runner.
-- `frequentist.py` — two-proportion z-test, Welch's t-test, Mann-Whitney U, confidence intervals, and multiple-comparisons correction (Bonferroni and Benjamini-Hochberg).
-- `bayesian.py` — Beta-Binomial conjugate model for conversion metrics: P(treatment > control), expected loss, and credible intervals.
-- `cuped.py` — CUPED variance reduction using the pre-period covariate.
-- `sequential.py` — always-valid inference via mixture SPRT and group-sequential (O'Brien-Fleming) boundaries for valid early stopping.
-- `decision.py` — combines statistical significance, practical significance against the minimum detectable effect, and guardrail-metric checks into a `ship` / `no-ship` / `inconclusive` recommendation.
-- `simulate.py` — ground-truth experiment generator parametrised by base rate, true effect, heterogeneity, and pre-period correlation.
+- `data.py` - the `ExperimentData` contract, CSV loaders, and input validation.
+- `design.py` - statistical power, minimum detectable effect, required sample size, and experiment-duration estimation.
+- `health.py` - sample-ratio-mismatch test (chi-square) and an A/A test runner.
+- `frequentist.py` - two-proportion z-test, Welch's t-test, Mann-Whitney U, confidence intervals, and multiple-comparisons correction (Bonferroni and Benjamini-Hochberg).
+- `bayesian.py` - Beta-Binomial conjugate model for conversion metrics: P(treatment > control), expected loss, and credible intervals.
+- `cuped.py` - CUPED variance reduction using the pre-period covariate.
+- `sequential.py` - always-valid inference via mixture SPRT and group-sequential (O'Brien-Fleming) boundaries for valid early stopping.
+- `decision.py` - combines statistical significance, practical significance against the minimum detectable effect, and guardrail-metric checks into a `ship` / `no-ship` / `inconclusive` recommendation.
+- `simulate.py` - ground-truth experiment generator parametrised by base rate, true effect, heterogeneity, and pre-period correlation.
 
-**Application.** The Streamlit app has four tabs mirroring the lifecycle — **Design** (calculators), **Health** (sample-ratio mismatch and A/A on uploaded data), **Analyse** (frequentist, Bayesian, and CUPED side by side), and **Monitor** (sequential testing). It validates any uploaded CSV against the `ExperimentData` schema before analysis.
+**Application.** The Streamlit app has four tabs mirroring the lifecycle - **Design** (calculators), **Health** (sample-ratio mismatch and A/A on uploaded data), **Analyse** (frequentist, Bayesian, and CUPED side by side), and **Monitor** (sequential testing). It validates any uploaded CSV against the `ExperimentData` schema before analysis.
 
 ## 7. Repository structure
 
@@ -154,13 +154,13 @@ ab-experiment-platform/
 
 **Frequentist analysis.** Binary metrics use a two-proportion z-test; continuous metrics use Welch's t-test, with Mann-Whitney U available for non-normal data. All report effect size and a confidence interval. When several metrics are tested together, p-values are corrected with Bonferroni (family-wise) or Benjamini-Hochberg (false-discovery-rate) procedures.
 
-**Bayesian analysis.** For conversion metrics, a Beta-Binomial conjugate model yields the posterior probability that treatment beats control, the expected loss of each decision, and credible intervals — a decision-oriented complement to the frequentist test.
+**Bayesian analysis.** For conversion metrics, a Beta-Binomial conjugate model yields the posterior probability that treatment beats control, the expected loss of each decision, and credible intervals - a decision-oriented complement to the frequentist test.
 
 **Variance reduction.** CUPED uses a pre-experiment covariate correlated with the outcome to remove pre-existing between-unit variance, tightening the confidence interval without biasing the effect estimate.
 
 **Sequential testing.** Mixture SPRT and group-sequential (O'Brien-Fleming) boundaries provide always-valid inference: significance can be evaluated continuously and the experiment stopped as soon as a boundary is crossed, while the overall false-positive rate stays at or below the nominal level.
 
-**Decision.** `decision.py` combines three inputs — statistical significance, practical significance (whether the estimated effect exceeds the pre-registered minimum detectable effect), and guardrail-metric checks — into a single `ship` / `no-ship` / `inconclusive` recommendation with the supporting evidence attached.
+**Decision.** `decision.py` combines three inputs - statistical significance, practical significance (whether the estimated effect exceeds the pre-registered minimum detectable effect), and guardrail-metric checks - into a single `ship` / `no-ship` / `inconclusive` recommendation with the supporting evidence attached.
 
 ## 9. Validation methodology
 
@@ -177,7 +177,7 @@ Headline metrics reported in the README: the naïve-peeking false-positive rate 
 
 ## 10. Error handling
 
-Validation occurs at the system boundary — data ingestion and the application — while internal calls between the library's own pure functions trust their inputs.
+Validation occurs at the system boundary - data ingestion and the application - while internal calls between the library's own pure functions trust their inputs.
 
 - **Data ingestion.** Unknown variant labels, empty variant groups, all-missing metric columns, and single-variant data are rejected with clear messages rather than raising raw exceptions.
 - **Statistical guardrails.** Tiny samples, zero-variance metrics, a detected sample-ratio mismatch, and a CUPED request with no available covariate produce explicit warnings (and, for CUPED, a documented fallback to the naïve estimator) instead of silent or misleading output.
@@ -197,7 +197,7 @@ Testing uses pytest with one test file per module and three layers:
 
 - **Streamlit Community Cloud** hosts the public application, deployed directly from the repository; the README carries the live URL and screenshots.
 - **Docker** provides local parity and host independence: `docker build` then `docker run -p 8501:8501` serves the same application.
-- **GitHub Actions** runs ruff and the full pytest suite — including the simulation-based validation tests — on every push, so statistical correctness is continuously enforced.
+- **GitHub Actions** runs ruff and the full pytest suite - including the simulation-based validation tests - on every push, so statistical correctness is continuously enforced.
 
 ## 13. Scaling path
 
@@ -207,7 +207,7 @@ Testing uses pytest with one test file per module and three layers:
 
 ## 14. Definition of Done
 
-1. `src/abtest/` is complete — `data`, `design`, `health`, `frequentist`, `bayesian`, `cuped`, `sequential`, `decision`, and `simulate` — with pure functions and type hints throughout.
+1. `src/abtest/` is complete - `data`, `design`, `health`, `frequentist`, `bayesian`, `cuped`, `sequential`, `decision`, and `simulate` - with pure functions and type hints throughout.
 2. All three test layers pass; the six validation checks are green in CI; ruff reports no findings.
 3. The six notebooks run top to bottom on the registered project kernel.
 4. The Streamlit app works across all four tabs on both the Cookie Cats data and a simulated upload, and is deployed to Streamlit Community Cloud with a working public link.
