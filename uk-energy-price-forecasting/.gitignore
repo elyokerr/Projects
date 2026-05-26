@@ -1,0 +1,21 @@
+.venv/
+__pycache__/
+# Override repo-level build/ ignore for our src/build package
+!src/build/
+.ipynb_checkpoints/
+.pytest_cache/
+.ruff_cache/
+data/raw/
+data/interim/
+data/processed/
+notebooks/data/
+models/*.pt
+models/*.ckpt
+models/*.pkl
+models/*.joblib
+reports/figures/*.png
+*.zip
+!tests/fixtures/*.zip
+*.parquet
+!tests/fixtures/*.parquet
+.env
