@@ -12,7 +12,7 @@ Launch the app first: `streamlit run app/streamlit_app.py`, sidebar → **Simula
 | 1 | `01_design_power.png` | Design | Sample-size metrics (per-arm N, total, duration) + the power-vs-sample-size curve. |
 | 2 | `02_health_srm.png` | Health | The green SRM "pass" badge with its p-value, and the A/A calibration result (FPR ≈ 5%). |
 | 3 | `03_analyse_decision.png` | Analyse | Frequentist effect + CI chart, the Bayesian P(treatment better), the CUPED variance-reduction line, and the **SHIP** decision banner. |
-| 4 | `04_monitor_sequential.png` | Monitor | **The headline** — naive-peeking FPR (~31%) vs mSPRT (~4%), plus the mSPRT statistic crossing the 1/α threshold (set `lift=0.05` so it stops early). |
+| 4 | `04_monitor_sequential.png` | Monitor | **The headline** - naive-peeking FPR (~31%) vs mSPRT (~4%), plus the mSPRT statistic crossing the 1/α threshold (set `lift=0.05` so it stops early). |
 
 Optional:
 
