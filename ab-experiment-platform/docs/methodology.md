@@ -4,7 +4,7 @@ This document records the formula and assumptions behind each method in `src/abt
 operate on the shared `ExperimentData` contract (a tidy per-unit frame with a `variant` column,
 one or more metric columns, and optional pre-period covariate / timestamp columns).
 
-## Design — power and sample size (`design.py`)
+## Design - power and sample size (`design.py`)
 
 For a two-proportion test with baseline rate `p1` and a target `p2 = p1 + MDE`, the effect size is
 Cohen's h via statsmodels `proportion_effectsize(p2, p1)`. The required per-arm sample size is solved
@@ -87,10 +87,10 @@ the incremental alpha spent at each look, then converted to a z-boundary. Early 
 
 `decide` combines three inputs into a recommendation:
 
-- **Statistical significance** — from the frequentist result.
-- **Practical significance** — the estimated effect is positive and at least the minimum detectable
+- **Statistical significance** - from the frequentist result.
+- **Practical significance** - the estimated effect is positive and at least the minimum detectable
   effect.
-- **Guardrails** — no guardrail metric has regressed.
+- **Guardrails** - no guardrail metric has regressed.
 
 The recommendation is `ship` only when all three hold; `no_ship` when significant but a guardrail
 regressed or the effect is below the MDE; and `inconclusive` when the result is not significant.
@@ -101,7 +101,7 @@ regressed or the effect is below the MDE; and `inconclusive` when the result is 
 conversion probability varies with a latent factor *additively on the probability scale*
 (`base_p = base_rate + covariate_corr · k · latent`), and the treatment adds a fixed absolute lift.
 This lets a pre-period covariate (`latent + noise`) correlate with the outcome **without** distorting
-the additive treatment effect — a logit-scale shift would not preserve an additive lift and would bias
+the additive treatment effect - a logit-scale shift would not preserve an additive lift and would bias
 CUPED's recovered effect. Known ground truth enables simulation-based validation of estimator
 recovery, false-positive calibration, power, and sequential validity (see
 `notebooks/06_simulation_validation.ipynb`).
