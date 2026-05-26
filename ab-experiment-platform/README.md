@@ -14,8 +14,8 @@ Correctness is verified by simulation against known ground truth (see `notebooks
 
 | Metric | Result |
 |---|---|
-| Sequential monitoring false-positive rate — naive peeking | **~31%** at nominal 5% |
-| Sequential monitoring false-positive rate — mSPRT | **~4%** at nominal 5% |
+| Sequential monitoring false-positive rate - naive peeking | **~31%** at nominal 5% |
+| Sequential monitoring false-positive rate - mSPRT | **~4%** at nominal 5% |
 | CUPED variance reduction (correlated pre-period covariate) | **~10%** |
 | Frequentist CI coverage (nominal 95%, 500 simulated experiments) | **~96%** |
 | Power calibration: predicted vs empirical at n=2941/arm | **80.0% predicted vs ~79% empirical** |
@@ -26,11 +26,11 @@ Correctness is verified by simulation against known ground truth (see `notebooks
 
 Most A/B tests fail silently:
 
-- **Underpowered** — launch decisions made on experiments with 20–40% power.
-- **Peeking** — analysts check p-values daily and stop early, inflating false-positive rates from
+- **Underpowered** - launch decisions made on experiments with 20–40% power.
+- **Peeking** - analysts check p-values daily and stop early, inflating false-positive rates from
   5% to 30%+.
-- **Sample-ratio mismatch** — undetected assignment bugs bias every downstream metric.
-- **Statistical vs practical significance** — a p<0.05 result on a 0.01 pp lift is not a ship decision.
+- **Sample-ratio mismatch** - undetected assignment bugs bias every downstream metric.
+- **Statistical vs practical significance** - a p<0.05 result on a 0.01 pp lift is not a ship decision.
 
 This platform encodes the correct lifecycle so that each of these failure modes has an explicit,
 tested mitigation.
@@ -68,7 +68,7 @@ streamlit run app/streamlit_app.py
 # Run the unit test suite (34 tests)
 pytest tests -q
 
-# Run the end-to-end smoke test (slower — ~5 s)
+# Run the end-to-end smoke test (slower - ~5 s)
 RUN_SLOW=1 pytest tests/test_end_to_end.py -q
 ```
 
@@ -113,7 +113,7 @@ ab-experiment-platform/
 ├── reports/figures/          # Power curve and validation summary figures
 ├── data/
 │   ├── README.md             # Cookie Cats dataset download instructions
-│   └── raw/                  # gitignored — place cookie_cats.csv here
+│   └── raw/                  # gitignored - place cookie_cats.csv here
 ├── Dockerfile
 ├── requirements.txt
 └── .github/workflows/ci-ab-experiment-platform.yml
@@ -126,34 +126,34 @@ ab-experiment-platform/
 The library follows a strict experiment lifecycle enforced by the `ExperimentData` dataclass, which
 acts as the shared contract between all modules.
 
-1. **Design** — `design.py` computes the minimum detectable effect and required sample size using
+1. **Design** - `design.py` computes the minimum detectable effect and required sample size using
    a two-proportion z-test power formula via statsmodels' `NormalIndPower.solve_power`. Effect size
    is expressed as Cohen's h (`proportion_effectsize`).
 
-2. **Health checks** — before any analysis, `health.py` runs a chi-square goodness-of-fit test
+2. **Health checks** - before any analysis, `health.py` runs a chi-square goodness-of-fit test
    to detect sample-ratio mismatch (flagged at p<0.001) and an optional A/A calibration.
 
-3. **Frequentist analysis** — `frequentist.py` exposes three tests (two-proportion z, Welch t,
+3. **Frequentist analysis** - `frequentist.py` exposes three tests (two-proportion z, Welch t,
    Mann-Whitney U) for conversion, continuous, and non-parametric cases respectively.
    Multiple-comparison correction uses Bonferroni or Benjamini-Hochberg via statsmodels.
 
-4. **Bayesian analysis** — `bayesian.py` models conversions with a Beta-Binomial conjugate
+4. **Bayesian analysis** - `bayesian.py` models conversions with a Beta-Binomial conjugate
    posterior. Outputs: P(treatment better) and expected loss under each decision.
 
-5. **CUPED** — `cuped.py` applies the Deng et al. covariate adjustment. The adjustment
+5. **CUPED** - `cuped.py` applies the Deng et al. covariate adjustment. The adjustment
    coefficient theta is estimated from the experiment data; adjusted outcomes are unbiased.
    Variance reduction is measured relative to the unadjusted estimator.
 
-6. **Sequential testing** — `sequential.py` implements the mixture Sequential Probability Ratio
+6. **Sequential testing** - `sequential.py` implements the mixture Sequential Probability Ratio
    Test (mSPRT), which provides an always-valid p-value: the probability of ever exceeding the
    threshold under H0 is bounded by alpha regardless of when you look. O'Brien-Fleming
    alpha-spending boundaries are also implemented for group-sequential designs.
 
-7. **Decision** — `decision.py` combines statistical significance, practical significance (MDE
+7. **Decision** - `decision.py` combines statistical significance, practical significance (MDE
    threshold), and guardrail checks into a structured `Decision` with a `recommendation` field
    (`ship`, `no_ship`, or `inconclusive`).
 
-8. **Simulator** — `simulate.py` generates synthetic experiments with known ground truth
+8. **Simulator** - `simulate.py` generates synthetic experiments with known ground truth
    (specified lift, baseline rate, and covariate correlation), enabling simulation-based
    correctness validation of every module.
 
@@ -183,21 +183,21 @@ See [docs/methodology.md](docs/methodology.md) for formulas and assumptions.
 
 ## Limitations and next steps
 
-- **Cookie Cats case study** — any notebook analysing the Cookie Cats dataset requires downloading
+- **Cookie Cats case study** - any notebook analysing the Cookie Cats dataset requires downloading
   the CSV from Kaggle (see `data/README.md`). The download cannot be automated without a Kaggle
   API key.
 
-- **CUPED on simulated data only** — the Cookie Cats dataset has no pre-period covariate, so the
+- **CUPED on simulated data only** - the Cookie Cats dataset has no pre-period covariate, so the
   CUPED notebook uses simulated data where the covariate correlation is known. Applying CUPED in
   practice requires a pre-experiment baseline metric for each unit.
 
-- **Single-metric focus** — all tests operate on a single primary metric. Ratio metrics (e.g.
+- **Single-metric focus** - all tests operate on a single primary metric. Ratio metrics (e.g.
   revenue per user = total revenue / users, where numerator and denominator are both random)
   require the delta method; this is a documented future extension.
 
-- **Heterogeneous treatment effects** — the library estimates average treatment effects only.
+- **Heterogeneous treatment effects** - the library estimates average treatment effects only.
   Subgroup uplift modelling (X-learner, causal forests) is a natural next step documented in
   the design doc.
 
-- **Fixed randomisation unit** — the library assumes user-level randomisation. Cluster
+- **Fixed randomisation unit** - the library assumes user-level randomisation. Cluster
   randomisation (e.g. page-level or session-level) with inflated variance is not yet handled.
