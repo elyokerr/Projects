@@ -6,7 +6,7 @@ structure is committed (via `.gitkeep` files) but the data files themselves are 
 ## Cookie Cats dataset
 
 The real-data notebooks (`notebooks/01_eda_cookie_cats.ipynb` and
-`notebooks/03_frequentist_bayesian.ipynb`) analyse the **Mobile Games A/B Testing — Cookie Cats**
+`notebooks/03_frequentist_bayesian.ipynb`) analyse the **Mobile Games A/B Testing - Cookie Cats**
 dataset published on Kaggle by yufengsui.
 
 - **Source:** [https://www.kaggle.com/datasets/yufengsui/mobile-games-ab-testing-cookie-cats](https://www.kaggle.com/datasets/yufengsui/mobile-games-ab-testing-cookie-cats)
@@ -23,14 +23,14 @@ dataset published on Kaggle by yufengsui.
 
 ## How to get the data
 
-**Option A — Kaggle CLI (recommended):**
+**Option A - Kaggle CLI (recommended):**
 
 ```bash
 kaggle datasets download -d yufengsui/mobile-games-ab-testing-cookie-cats
 unzip mobile-games-ab-testing-cookie-cats.zip -d data/raw/
 ```
 
-**Option B — manual download:**
+**Option B - manual download:**
 
 1. Log in to Kaggle and go to the dataset page above.
 2. Click **Download** and save the zip, then extract `cookie_cats.csv`.
