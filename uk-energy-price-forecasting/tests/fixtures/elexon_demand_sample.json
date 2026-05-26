@@ -1,0 +1,58 @@
+{
+  "indo": {
+    "data": [
+      {
+        "startTime": "2024-01-15T00:00:00Z",
+        "settlementDate": "2024-01-15",
+        "settlementPeriod": 1,
+        "demand": 25000.0
+      },
+      {
+        "startTime": "2024-01-15T00:30:00Z",
+        "settlementDate": "2024-01-15",
+        "settlementPeriod": 2,
+        "demand": 24800.0
+      },
+      {
+        "startTime": "2024-01-15T01:00:00Z",
+        "settlementDate": "2024-01-15",
+        "settlementPeriod": 3,
+        "demand": 24500.0
+      },
+      {
+        "startTime": "2024-01-15T01:30:00Z",
+        "settlementDate": "2024-01-15",
+        "settlementPeriod": 4,
+        "demand": 24200.0
+      }
+    ]
+  },
+  "itsdo": {
+    "data": [
+      {
+        "startTime": "2024-01-15T00:00:00Z",
+        "settlementDate": "2024-01-15",
+        "settlementPeriod": 1,
+        "demand": 24500.0
+      },
+      {
+        "startTime": "2024-01-15T00:30:00Z",
+        "settlementDate": "2024-01-15",
+        "settlementPeriod": 2,
+        "demand": 24300.0
+      },
+      {
+        "startTime": "2024-01-15T01:00:00Z",
+        "settlementDate": "2024-01-15",
+        "settlementPeriod": 3,
+        "demand": 24000.0
+      },
+      {
+        "startTime": "2024-01-15T01:30:00Z",
+        "settlementDate": "2024-01-15",
+        "settlementPeriod": 4,
+        "demand": 23700.0
+      }
+    ]
+  }
+}
