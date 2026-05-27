@@ -61,14 +61,26 @@ class GlobalLGBM:
         ``n_estimators``, ``num_leaves``).
     """
 
+    # Sparse seasonal lags: recent steps + 1-day (48) + 2-day (96) history.
+    # Using explicit lag LISTS instead of 48 contiguous lags keeps the feature
+    # matrix small, which matters because output_chunk_length=48 with
+    # multi_models=True trains one LightGBM per (horizon-step x quantile) =
+    # 48 x 3 = 144 sub-models. Dense 48-lag features made this ~10 min/fit.
+    _DEFAULT_LAGS = [-1, -2, -3, -48, -96]
+    _DEFAULT_PAST_COV_LAGS = [-1, -2, -3, -48]
+
     def __init__(
         self,
         quantiles: tuple[float, ...] = (0.1, 0.5, 0.9),
-        lags: int = 48,
-        lags_past_covariates: int = 48,
+        lags: int | list[int] | None = None,
+        lags_past_covariates: int | list[int] | None = None,
         lags_future_covariates: tuple[int, int] | None = None,
         **kwargs,
     ) -> None:
+        if lags is None:
+            lags = list(self._DEFAULT_LAGS)
+        if lags_past_covariates is None:
+            lags_past_covariates = list(self._DEFAULT_PAST_COV_LAGS)
         self.quantiles = tuple(sorted(quantiles))
         self.lags = lags
         self.lags_past_covariates = lags_past_covariates
@@ -97,8 +109,8 @@ class GlobalLGBM:
         past_cov = bundle.past_covariates
         future_cov = bundle.future_covariates
 
-        # Default n_estimators if not overridden by caller.
-        kwargs = {"n_estimators": 100, "verbose": -1}
+        # Modest defaults keep the 144 sub-models cheap; override via kwargs.
+        kwargs = {"n_estimators": 50, "num_leaves": 15, "verbose": -1}
         kwargs.update(self.kwargs)
 
         # output_chunk_length must equal n at predict time when using
