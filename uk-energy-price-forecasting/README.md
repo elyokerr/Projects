@@ -1,6 +1,6 @@
-# Project Title
+# UK Energy Price Forecasting
 
-> One-line tagline describing what this project does and the business value it delivers.
+> Probabilistic day-ahead forecasting of GB wholesale electricity prices — a single global model across a panel of energy series, evaluated by rolling-origin backtesting.
 
 ---
 
@@ -19,26 +19,26 @@
 
 ## Hero Results
 
-| Metric | Value |
-|---|---|
-| Headline metric 1 | `XX` |
-| Headline metric 2 | `XX` |
-| Headline metric 3 | `XX` |
-| Headline metric 4 | `XX` |
+Rolling-origin backtest, 48-settlement-period horizon. Global LightGBM vs the seasonal-naive baseline:
 
-*(Replace with 3-5 metrics that prove the project worked: model performance, business impact, etc.)*
+| Metric | Seasonal-naive | Global LightGBM |
+|---|---|---|
+| Pinball loss (lower better) | 2.90 | **1.44** |
+| Skill vs naive (pinball) | — | **+50%** |
+| MAE (median forecast) | 5.81 | **3.95** |
+| 80% interval coverage | 0.00¹ | **0.73** |
+
+¹ Seasonal-naive is a point forecast (zero interval width), so its probabilistic coverage is zero by construction — a deliberate teaching contrast.
+
+> **These figures are computed on the committed synthetic fixture panel** so the repo is fully reproducible with no API keys. Headline results on real GB market data are produced by the Colab training run (`notebooks/03_colab_train_global.ipynb`) plus the live-data backtest; the deep models (TFT/TiDE) and the zero-shot foundation baseline (Chronos/TimesFM) join the ablation table there.
 
 ---
 
 ## The Business Problem
 
-Describe in 2-3 short paragraphs:
+GB wholesale electricity prices are set in a day-ahead auction and are highly volatile — driven by demand, the generation mix (especially intermittent wind and solar), and fuel costs. When low renewable output coincides with high demand, prices spike; when renewables are abundant, prices can fall toward or below zero.
 
-- What real-world problem this solves
-- Who would care about the solution
-- Why it matters in business terms (revenue, cost, time, risk)
-
-Avoid jargon. A recruiter should understand it in 30 seconds.
+For anyone acting on tomorrow's prices — energy traders placing day-ahead bids, battery and flexibility operators scheduling charge/discharge, grid risk teams sizing exposure — a single point forecast is not enough. The cost of being wrong is concentrated in the tails. This system forecasts the full next-day half-hourly price curve **with calibrated uncertainty intervals**, so the shape and the risk are both explicit.
 
 ---
 
@@ -46,87 +46,77 @@ Avoid jargon. A recruiter should understand it in 30 seconds.
 
 | Skill Area | Where to look |
 |---|---|
-| Data engineering | `src/data/` |
-| Feature engineering | `src/features/` |
-| Machine learning | `src/models/`, `notebooks/` |
-| Model explainability | `notebooks/` |
-| Software engineering | `src/`, `tests/` |
-| Deployment / serving | `app/` |
-
-*(Customize this table to match what your project actually shows.)*
+| Global / multi-series forecasting (one model across many series) | `src/models/global_ml.py`, `src/models/global_dl.py` |
+| Probabilistic forecasting (quantiles, pinball, CRPS, coverage) | `src/metrics/`, `src/models/` |
+| Deep forecasting (TFT, TiDE) + zero-shot foundation models | `src/models/global_dl.py`, `src/models/foundation.py` |
+| Rigorous evaluation (rolling-origin backtesting) | `src/backtest/rolling_origin.py` |
+| Leakage-safe covariate engineering | `src/build/leakage.py`, `src/build/panel.py` |
+| Data engineering (Elexon + ENTSO-E ingestion) | `src/data/` |
+| Software engineering (typed library, tests, CI) | `src/`, `tests/` |
+| Deployment / serving | `app/streamlit_app.py` |
 
 ---
 
 ## Quick Start
 
 ```bash
-# Clone the repo
 git clone https://github.com/elyokerr/Projects.git
-cd Projects/<project-name>
+cd Projects/uk-energy-price-forecasting
 
-# Install dependencies
+python -m venv .venv && .venv/Scripts/activate   # Windows
 pip install -r requirements.txt
 
-# Run the main pipeline (notebook or script)
+# Run the test suite (uses the committed fixture panel — no API keys needed)
+pytest -q
+
+# Explore the notebooks
 jupyter notebook notebooks/01_eda.ipynb
-# or
-python -m src.models.train
 ```
 
-For the interactive app (if applicable):
+Interactive app (runs on the fixture panel with zero secrets):
 
 ```bash
-streamlit run app/app.py
+streamlit run app/streamlit_app.py
 ```
+
+Using live data requires a free ENTSO-E token — see [`data/README.md`](data/README.md).
 
 ---
 
 ## Project Structure
 
 ```
-<project-name>/
+uk-energy-price-forecasting/
 ├── README.md                 ← You are here
-├── requirements.txt          ← Python dependencies
+├── requirements.txt
 │
-├── notebooks/                ← Numbered Jupyter notebooks (EDA → modelling)
-├── src/                      ← Reusable Python modules
-│   ├── data/                 ← Data loading & ingestion
-│   ├── features/             ← Feature engineering
-│   ├── models/               ← Training, evaluation, prediction
-│   └── utils/                ← Shared helpers
+├── notebooks/                ← 01 EDA · 02 covariates · 03 Colab training · 04 backtest ablation · 05 probabilistic eval
+├── src/
+│   ├── data/                 ← Elexon + ENTSO-E clients, calendar covariates
+│   ├── build/                ← 48-SP grid alignment, panel construction, leakage guard
+│   ├── models/               ← baselines · global LightGBM · global TFT/TiDE · foundation
+│   ├── backtest/             ← rolling-origin harness + ablation table
+│   └── metrics/              ← pinball · coverage · CRPS · point metrics
 │
-├── data/                     ← Data (contents gitignored, structure kept)
-│   ├── raw/                  ← Original, immutable data
-│   ├── interim/              ← Intermediate transformations
-│   ├── processed/            ← Final feature sets
-│   └── external/             ← Third-party data
-│
-├── models/                   ← Serialized model artifacts (.joblib)
-│
-├── reports/
-│   └── figures/              ← Generated plots & screenshots
-│
-├── app/                      ← Streamlit / FastAPI dashboard (optional)
-│
-├── tests/                    ← Pytest tests
-│
-└── docs/                     ← Extended documentation (optional)
+├── app/                      ← Streamlit app (fan chart + backtest explorer)
+├── data/                     ← raw/interim/processed (gitignored); fixture panel under tests/fixtures
+├── models/                   ← serialized trained artifacts (gitignored)
+├── reports/figures/          ← generated plots
+├── tests/                    ← pytest suite incl. leakage guard + RUN_SLOW e2e smoke
+└── docs/                     ← design doc + methodology
 ```
 
 ---
 
 ## Methodology
 
-Walk the reader through how the solution was built, step by step.
+1. **Data ingestion** — half-hourly generation-by-fuel, demand, and wind/solar forecast from the Elexon BMRS Insights API; GB day-ahead price from the ENTSO-E Transparency Platform. Raw responses cached to parquet.
+2. **Panel construction** — all series aligned to the 48-settlement-period grid (clock-change days handled), assembled into a Darts panel with strictly typed past covariates (out-turn demand/generation) and future covariates (deterministic calendar features). A leakage guard enforces that no out-turn data ever enters the future-covariate set.
+3. **Model ladder** — seasonal-naive → statistical (Theta/AutoARIMA) → global LightGBM (quantile) → global deep models (TFT/TiDE, quantile likelihood) → zero-shot foundation model (Chronos/TimesFM) as a benchmark.
+4. **Evaluation** — rolling-origin backtesting: the forecast origin advances day-by-day across a held-out window; every model is scored on identical origins. Metrics: pinball loss, interval coverage, CRPS, plus MAE/RMSE/sMAPE and skill-vs-naive.
+5. **Deployment** — a Streamlit app serves the day-ahead fan chart and a backtest explorer; inference is decoupled from training (models are trained in Colab and loaded by the app).
 
-1. **Data ingestion** — where the raw data comes from, how it's loaded
-2. **Exploration & cleaning** — what the data looked like, what was fixed
-3. **Feature engineering** — what features were built and why
-4. **Modelling** — which algorithms were tried, how they were tuned
-5. **Evaluation** — how performance was measured (metrics + business framing)
-6. **Deployment** — how the model is exposed (notebook, API, app)
-
-Keep each step to a short paragraph. Defer detail to inline notebooks or `docs/`.
+Full detail in [`docs/methodology.md`](docs/methodology.md).
 
 ---
 
@@ -134,18 +124,24 @@ Keep each step to a short paragraph. Defer detail to inline notebooks or `docs/`
 
 | Technology | Purpose |
 |---|---|
-| Python 3.10+ | Core language |
-| pandas / NumPy | Data manipulation |
-| scikit-learn | ML pipeline & preprocessing |
-| *(add others)* | *(add purpose)* |
+| Python 3.11 | Core language |
+| Darts | Unified forecasting framework; global models + probabilistic forecasts + backtesting |
+| LightGBM | Global gradient-boosted quantile model |
+| PyTorch + TFT/TiDE | Global deep forecasting models |
+| Chronos / TimesFM | Zero-shot time-series foundation baselines (Colab) |
+| pandas / NumPy / pyarrow | Data handling |
+| Streamlit + Plotly | Interactive app |
+| pytest + ruff | Tests & linting |
+| Docker + GitHub Actions | Reproducibility & CI |
+| Google Colab (T4) | Heavy training |
 
 ---
 
 ## Limitations & Next Steps
 
-Be honest about what could be better:
-
-- **Limitation 1** — short explanation
-- **Limitation 2** — short explanation
-- **Next step 1** — what you'd build if you had more time
-- **Next step 2** — how this would extend in production
+- **Synthetic fixture for reproducibility** — the committed results use a synthetic panel so the repo runs without secrets. Real GB-market results require the live-data pull (ENTSO-E token) and the Colab training run.
+- **Live API field names pending confirmation** — the Elexon field names and ENTSO-E XML namespace are coded against published docs and flagged for confirmation against a live response (see `data/README.md`).
+- **Prices in published currency** — ENTSO-E publishes GB day-ahead prices in EUR/MWh; no FX conversion is invented. A clean free GBP series (or a documented FX source) is a future addition.
+- **Next: regional series** — extending the panel to grid-supply-point regions enlarges the global-model panel with no architectural change.
+- **Next: conformal intervals** — distribution-free coverage guarantees on top of the quantile forecasts.
+- **Next: scheduled retraining** — moving the Colab training into an orchestrated incremental-refit flow.
