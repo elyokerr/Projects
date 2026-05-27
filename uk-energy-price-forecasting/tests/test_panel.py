@@ -1,9 +1,8 @@
 """Tests for src/build/panel.py — PanelBundle construction."""
 import pandas as pd
 import numpy as np
-import pytest
 
-from src.build.panel import build_panel, PanelBundle
+from src.build.panel import build_panel
 
 
 # ---------------------------------------------------------------------------
