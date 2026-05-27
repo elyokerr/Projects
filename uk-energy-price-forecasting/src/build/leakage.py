@@ -6,7 +6,6 @@ and never contain out-turn (observed) data such as generation, demand, or price.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -121,7 +120,6 @@ def slice_future_covariates(future_cov, origin, horizon):
     darts.TimeSeries
         Sliced series covering [origin + 1 freq … origin + horizon freq].
     """
-    import pandas as pd
 
     freq = future_cov.freq
     start = origin + freq
