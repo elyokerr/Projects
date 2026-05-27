@@ -80,3 +80,165 @@ def generate_origins(
     # Keep only grid entries that are actually in the midnight set
     midnight_set = set(midnights)
     return [ts for ts in grid if ts in midnight_set]
+
+
+# ---------------------------------------------------------------------------
+# Module 2 — BacktestResult + run_backtest
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class BacktestResult:
+    """Results from a rolling-origin backtest evaluation.
+
+    Attributes
+    ----------
+    model_name : str
+        Identifier for the model.
+    origins : list
+        Forecast origin timestamps used in the evaluation.
+    quantiles : tuple
+        Quantile levels that were requested.
+    actuals : np.ndarray
+        Shape (n_origins, horizon). Observed values for each origin window.
+    forecasts : dict[float, np.ndarray]
+        Mapping quantile -> array of shape (n_origins, horizon).
+    horizon : int
+        Number of forecast steps per origin.
+    """
+
+    model_name: str
+    origins: list
+    quantiles: tuple
+    actuals: np.ndarray
+    forecasts: dict
+    horizon: int
+
+    def metrics(self) -> dict[str, float]:
+        """Compute evaluation metrics by flattening actuals and forecasts.
+
+        Returns
+        -------
+        dict[str, float]
+            Keys: pinball, coverage_80, coverage_nominal, crps, mae, rmse, smape.
+        """
+        actuals_flat = self.actuals.flatten()
+        fc_flat = {q: arr.flatten() for q, arr in self.forecasts.items()}
+
+        # Pinball (mean over all quantiles)
+        pinball_val = mean_pinball(actuals_flat, fc_flat)
+
+        # Coverage: use min/max quantile as the nominal interval bounds
+        q_low = min(self.quantiles)
+        q_high = max(self.quantiles)
+        cov = interval_coverage(actuals_flat, fc_flat[q_low], fc_flat[q_high])
+        cov_nominal = q_high - q_low
+
+        # CRPS
+        crps_val = crps_from_quantiles(actuals_flat, fc_flat)
+
+        # Point metrics on median quantile (closest to 0.5)
+        q_median = min(self.quantiles, key=lambda q: abs(q - 0.5))
+        median_fc = fc_flat[q_median]
+        mae_val = mae(actuals_flat, median_fc)
+        rmse_val = rmse(actuals_flat, median_fc)
+        smape_val = smape(actuals_flat, median_fc)
+
+        return {
+            "pinball": pinball_val,
+            "coverage_80": cov,
+            "coverage_nominal": cov_nominal,
+            "crps": crps_val,
+            "mae": mae_val,
+            "rmse": rmse_val,
+            "smape": smape_val,
+        }
+
+
+def run_backtest(
+    model,
+    bundle,
+    origins: list,
+    horizon: int = 48,
+    quantiles: tuple = (0.1, 0.5, 0.9),
+    refit: bool = False,
+    model_name: str | None = None,
+) -> BacktestResult:
+    """Execute a rolling-origin backtest evaluation loop.
+
+    Parameters
+    ----------
+    model
+        A model with ``.fit(bundle, train_end)`` and
+        ``.predict_quantiles(bundle, origin, horizon, quantiles)`` methods.
+    bundle : PanelBundle
+        The full data bundle.
+    origins : list[pd.Timestamp]
+        Forecast origins to evaluate.
+    horizon : int
+        Steps to forecast after each origin.
+    quantiles : tuple of float
+        Quantile levels to evaluate.
+    refit : bool
+        If False (default), fit once before the loop using ``origins[0]`` as
+        train_end.  If True, re-fit inside the loop at each origin.
+    model_name : str or None
+        Label for this model.  Defaults to ``type(model).__name__``.
+
+    Returns
+    -------
+    BacktestResult
+    """
+    if model_name is None:
+        model_name = type(model).__name__
+
+    target_index = bundle.target.time_index
+    target_values = bundle.target.values().flatten()
+
+    # Fit once if refit is False
+    if not refit and len(origins) > 0:
+        model.fit(bundle, train_end=origins[0])
+
+    actuals_list: list[np.ndarray] = []
+    forecasts_list: dict[float, list[np.ndarray]] = {q: [] for q in quantiles}
+    valid_origins: list = []
+
+    for origin in origins:
+        # Locate origin position in the target index
+        try:
+            pos = target_index.get_loc(origin)
+        except KeyError:
+            # Origin not in index; skip
+            continue
+
+        # Need at least `horizon` steps after the origin
+        if pos + horizon >= len(target_values):
+            continue
+
+        # Re-fit if requested (local models)
+        if refit:
+            model.fit(bundle, train_end=origin)
+
+        preds = model.predict_quantiles(bundle, origin, horizon, quantiles)
+
+        actual_window = target_values[pos + 1 : pos + 1 + horizon]
+        actuals_list.append(actual_window)
+        for q in quantiles:
+            forecasts_list[q].append(preds[q])
+        valid_origins.append(origin)
+
+    # Stack into 2D arrays (n_origins x horizon)
+    actuals_arr = np.stack(actuals_list, axis=0) if actuals_list else np.empty((0, horizon))
+    forecasts_arr = {
+        q: np.stack(forecasts_list[q], axis=0) if forecasts_list[q] else np.empty((0, horizon))
+        for q in quantiles
+    }
+
+    return BacktestResult(
+        model_name=model_name,
+        origins=valid_origins,
+        quantiles=tuple(quantiles),
+        actuals=actuals_arr,
+        forecasts=forecasts_arr,
+        horizon=horizon,
+    )
