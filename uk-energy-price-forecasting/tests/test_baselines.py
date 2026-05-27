@@ -1,7 +1,6 @@
 """Tests for src/models/baselines.py — SeasonalNaive and ThetaBaseline."""
 import numpy as np
 import pandas as pd
-import pytest
 from darts import TimeSeries
 
 from src.build.panel import PanelBundle
