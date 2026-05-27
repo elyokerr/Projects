@@ -69,15 +69,16 @@ def assert_settlement_periods_per_day(df: pd.DataFrame) -> dict[date, int]:
     dict[datetime.date, int]
         Mapping from local calendar date to settlement-period count.
     """
-    # NOTE: we group by the UTC calendar date (i.e. strip tz, use .date()).
-    # Grouping by Europe/London local date would cause a normal UTC day
-    # (00:00–23:30 UTC in BST) to split across two London local dates.
-    # The spring-clock-change test still works because the London-local range
-    # 00:00–23:30 on 2024-03-31 converts to UTC timestamps that all fall on
-    # 2024-03-31 UTC (the transition happens at 01:00 London = 01:00 UTC that
-    # night, before BST begins), so counting UTC dates also gives 46 there.
-    utc_dates = df.index.normalize().date
+    # GB settlement periods are defined in local (Europe/London) time: a normal
+    # local day has 48, a spring clock-change day 46, an autumn clock-change day
+    # 50. We therefore group by the LOCAL calendar date. A continuous UTC grid
+    # always has 48 entries per UTC date, so grouping by UTC would never surface
+    # the 46/50 days this function exists to detect.
+    idx = df.index
+    if idx.tz is None:
+        idx = idx.tz_localize("UTC")
+    local_dates = idx.tz_convert("Europe/London").normalize().date
     counts: dict[date, int] = {}
-    for d in utc_dates:
+    for d in local_dates:
         counts[d] = counts.get(d, 0) + 1
     return counts

@@ -19,8 +19,10 @@ def test_grid_leaves_long_gap_nan():
 
 
 def test_normal_day_has_48_sps():
-    idx = pd.date_range("2024-06-01 00:00", "2024-06-01 23:30", freq="30min", tz="UTC")
-    df = pd.DataFrame({"v": range(48)}, index=idx)
+    # A normal local day has 48 settlement periods. Build it in Europe/London
+    # and store as UTC, mirroring the real pipeline (UTC storage, local SP semantics).
+    idx = pd.date_range("2024-06-01 00:00", "2024-06-01 23:30", freq="30min", tz="Europe/London")
+    df = pd.DataFrame({"v": range(len(idx))}, index=idx.tz_convert("UTC"))
     counts = assert_settlement_periods_per_day(df)
     assert counts[pd.Timestamp("2024-06-01").date()] == 48
 
@@ -30,3 +32,11 @@ def test_spring_clock_change_has_46_sps():
     df = pd.DataFrame({"v": range(len(idx))}, index=idx.tz_convert("UTC"))
     counts = assert_settlement_periods_per_day(df)
     assert counts[pd.Timestamp("2024-03-31").date()] == 46
+
+
+def test_autumn_clock_change_has_50_sps():
+    # Autumn DST: the 01:00-02:00 local hour repeats, giving a 25-hour (50-SP) day.
+    idx = pd.date_range("2024-10-27 00:00", "2024-10-27 23:30", freq="30min", tz="Europe/London")
+    df = pd.DataFrame({"v": range(len(idx))}, index=idx.tz_convert("UTC"))
+    counts = assert_settlement_periods_per_day(df)
+    assert counts[pd.Timestamp("2024-10-27").date()] == 50
