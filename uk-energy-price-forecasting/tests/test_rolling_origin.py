@@ -1,9 +1,13 @@
 """Tests for src/backtest/rolling_origin.py (Phase 5 — rolling-origin harness)."""
 import numpy as np
 import pandas as pd
-import pytest
 
-from src.backtest.rolling_origin import BacktestResult, generate_origins, run_backtest
+from src.backtest.rolling_origin import (
+    BacktestResult,
+    build_ablation_table,
+    generate_origins,
+    run_backtest,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -142,3 +146,57 @@ def test_backtest_default_model_name():
     model = SeasonalNaive(season=48)
     res = run_backtest(model, bundle, origins, horizon=48)
     assert res.model_name == "SeasonalNaive"
+
+
+# ---------------------------------------------------------------------------
+# Module 3: build_ablation_table
+# ---------------------------------------------------------------------------
+
+
+def _fake_result(name: str, err: float) -> BacktestResult:
+    """actuals all 10; median forecast off by `err`; outer quantiles +-1 around median."""
+    n, h = 2, 4
+    actuals = np.full((n, h), 10.0)
+    med = np.full((n, h), 10.0 + err)
+    return BacktestResult(
+        model_name=name,
+        origins=[0, 1],
+        quantiles=(0.1, 0.5, 0.9),
+        actuals=actuals,
+        forecasts={0.1: med - 1, 0.5: med, 0.9: med + 1},
+        horizon=h,
+    )
+
+
+def test_ablation_table_baseline_zero_skill():
+    results = {
+        "seasonal_naive": _fake_result("seasonal_naive", 2.0),
+        "better_model": _fake_result("better_model", 1.0),
+    }
+    table = build_ablation_table(results, baseline="seasonal_naive")
+    assert set(table.columns) >= {"pinball", "coverage_80", "crps", "mae", "skill_mae"}
+    assert table.loc["seasonal_naive", "skill_mae"] == 0.0
+    assert table.loc["better_model", "skill_mae"] > 0.0  # half the error -> positive skill
+
+
+def test_ablation_table_skill_pinball():
+    """skill_pinball for a model with lower pinball is positive; baseline is 0."""
+    results = {
+        "seasonal_naive": _fake_result("seasonal_naive", 3.0),
+        "good_model": _fake_result("good_model", 1.0),
+    }
+    table = build_ablation_table(results, baseline="seasonal_naive")
+    assert table.loc["seasonal_naive", "skill_pinball"] == 0.0
+    assert table.loc["good_model", "skill_pinball"] > 0.0
+
+
+def test_ablation_table_index_and_columns():
+    """Index should be model names; required columns present."""
+    results = {
+        "m1": _fake_result("m1", 1.0),
+        "m2": _fake_result("m2", 2.0),
+    }
+    table = build_ablation_table(results, baseline="m1")
+    assert set(table.index) == {"m1", "m2"}
+    required = {"pinball", "coverage_80", "crps", "mae", "skill_pinball", "skill_mae"}
+    assert required.issubset(set(table.columns))

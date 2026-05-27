@@ -18,7 +18,7 @@ build_ablation_table(results, baseline="seasonal_naive") -> pd.DataFrame
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
@@ -242,3 +242,58 @@ def run_backtest(
         forecasts=forecasts_arr,
         horizon=horizon,
     )
+
+
+# ---------------------------------------------------------------------------
+# Module 3 — build_ablation_table
+# ---------------------------------------------------------------------------
+
+
+def build_ablation_table(
+    results: dict[str, "BacktestResult"],
+    baseline: str = "seasonal_naive",
+) -> pd.DataFrame:
+    """Summarise multiple BacktestResult objects into a skill-scored DataFrame.
+
+    Parameters
+    ----------
+    results : dict[str, BacktestResult]
+        Mapping of model name -> BacktestResult.
+    baseline : str
+        Key of the baseline model in *results*.  Skill scores are computed
+        relative to this model; the baseline row itself has skill == 0.
+
+    Returns
+    -------
+    pd.DataFrame
+        Index = model names.
+        Columns: pinball, coverage_80, crps, mae, skill_pinball, skill_mae.
+    """
+    rows: dict[str, dict[str, float]] = {}
+    for name, res in results.items():
+        m = res.metrics()
+        rows[name] = m
+
+    # Extract baseline metrics for skill computation
+    baseline_metrics = rows.get(baseline, {})
+    baseline_pinball = baseline_metrics.get("pinball", 0.0)
+    baseline_mae = baseline_metrics.get("mae", 0.0)
+
+    records = []
+    index = []
+    for name, m in rows.items():
+        skill_p = skill_vs_baseline(m["pinball"], baseline_pinball) if name != baseline else 0.0
+        skill_m = skill_vs_baseline(m["mae"], baseline_mae) if name != baseline else 0.0
+        records.append(
+            {
+                "pinball": m["pinball"],
+                "coverage_80": m["coverage_80"],
+                "crps": m["crps"],
+                "mae": m["mae"],
+                "skill_pinball": skill_p,
+                "skill_mae": skill_m,
+            }
+        )
+        index.append(name)
+
+    return pd.DataFrame(records, index=index)
