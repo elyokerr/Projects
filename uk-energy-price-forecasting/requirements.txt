@@ -1,0 +1,27 @@
+# Python 3.11. Foundation models (chronos-forecasting / timesfm) are installed in the
+# Colab training notebook ONLY -- they pull heavy deps and are not needed for the
+# library, tests, or the Streamlit app.
+
+# core
+python-dateutil>=2.9
+pandas>=2.1
+pyarrow<17
+numpy<2.1
+# forecasting
+darts>=0.30
+lightgbm>=4.3
+torch>=2.2,<2.5
+statsmodels>=0.14
+holidays>=0.50
+# data sources
+requests>=2.31
+# app
+streamlit>=1.36
+plotly>=5.22
+# notebooks
+matplotlib>=3.7
+ipykernel
+# dev
+pytest>=8
+ruff>=0.5
+python-dotenv>=1.0
