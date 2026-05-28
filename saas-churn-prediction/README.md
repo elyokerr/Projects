@@ -1,6 +1,6 @@
 # SaaS Customer Churn Prediction Platform
 
-![CI Pipeline](https://github.com/YOUR_USERNAME/saas-churn-prediction/actions/workflows/ci.yml/badge.svg)
+![CI Pipeline](https://github.com/elyokerr/saas-churn-prediction/actions/workflows/ci.yml/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
