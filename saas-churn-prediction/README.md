@@ -102,10 +102,10 @@ streamlit run dashboard/app.py
 
 Every notebook in `notebooks/` is Colab-ready. Each one mounts Google Drive, navigates to the project directory, installs dependencies, and runs the relevant stage. Open them in order:
 
-1. `01_full_pipeline.ipynb` — data pipeline plus model training and evaluation
-2. `02_fastapi_serving.ipynb` — API walkthrough using FastAPI's TestClient
-3. `03_dashboard_demo.ipynb` — inline preview of the dashboard's charts
-4. `04_docker_cicd.ipynb` — Docker and CI configuration walkthrough
+1. `01_full_pipeline.ipynb` -data pipeline plus model training and evaluation
+2. `02_fastapi_serving.ipynb` -API walkthrough using FastAPI's TestClient
+3. `03_dashboard_demo.ipynb` -inline preview of the dashboard's charts
+4. `04_docker_cicd.ipynb` -Docker and CI configuration walkthrough
 
 ---
 
@@ -322,34 +322,14 @@ Screenshots live in `docs/screenshots/` and are referenced in [`docs/dashboard.m
 
 Each major component has its own detailed write-up under `docs/`:
 
-- [`docs/architecture.md`](docs/architecture.md) — system design, layer responsibilities, and the rationale behind key decisions
-- [`docs/data_pipeline.md`](docs/data_pipeline.md) — how raw data becomes 45 features
-- [`docs/modeling.md`](docs/modeling.md) — model selection, evaluation, threshold tuning, and SHAP analysis
-- [`docs/api_service.md`](docs/api_service.md) — endpoints, validation, testing, and running locally
-- [`docs/dashboard.md`](docs/dashboard.md) — dashboard sections, filters, and design choices
+- [`docs/architecture.md`](docs/architecture.md) -system design, layer responsibilities, and the rationale behind key decisions
+- [`docs/data_pipeline.md`](docs/data_pipeline.md) -how raw data becomes 45 features
+- [`docs/modeling.md`](docs/modeling.md) -model selection, evaluation, threshold tuning, and SHAP analysis
+- [`docs/api_service.md`](docs/api_service.md) -endpoints, validation, testing, and running locally
+- [`docs/dashboard.md`](docs/dashboard.md) -dashboard sections, filters, and design choices
 
 ---
 
-## Roadmap
-
-The platform was built in six phases, each committed as its own milestone:
-
-- [x] Phase 1 — Data pipeline with SQL feature engineering
-- [x] Phase 2 — Multi-model training, evaluation, SHAP, batch scoring
-- [x] Phase 3 — FastAPI service with validation and tests
-- [x] Phase 4 — Streamlit dashboard
-- [x] Phase 5 — Full-stack Docker Compose setup
-- [x] Phase 6 — GitHub Actions CI pipeline
-
-Possible future extensions:
-
-- Scheduled retraining with data drift detection
-- API authentication and rate limiting
-- A/B testing framework for retention interventions
-- Streaming predictions via Kafka
-- Production monitoring and alerting on model performance drift
-
----
 
 ## License
 
