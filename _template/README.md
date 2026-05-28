@@ -119,12 +119,12 @@ streamlit run app/app.py
 
 Walk the reader through how the solution was built, step by step.
 
-1. **Data ingestion** — where the raw data comes from, how it's loaded
-2. **Exploration & cleaning** — what the data looked like, what was fixed
-3. **Feature engineering** — what features were built and why
-4. **Modelling** — which algorithms were tried, how they were tuned
-5. **Evaluation** — how performance was measured (metrics + business framing)
-6. **Deployment** — how the model is exposed (notebook, API, app)
+1. **Data ingestion** -where the raw data comes from, how it's loaded
+2. **Exploration & cleaning** -what the data looked like, what was fixed
+3. **Feature engineering** -what features were built and why
+4. **Modelling** -which algorithms were tried, how they were tuned
+5. **Evaluation** -how performance was measured (metrics + business framing)
+6. **Deployment** -how the model is exposed (notebook, API, app)
 
 Keep each step to a short paragraph. Defer detail to inline notebooks or `docs/`.
 
@@ -145,7 +145,7 @@ Keep each step to a short paragraph. Defer detail to inline notebooks or `docs/`
 
 Be honest about what could be better:
 
-- **Limitation 1** — short explanation
-- **Limitation 2** — short explanation
-- **Next step 1** — what you'd build if you had more time
-- **Next step 2** — how this would extend in production
+- **Limitation 1** -short explanation
+- **Limitation 2** -short explanation
+- **Next step 1** -what you'd build if you had more time
+- **Next step 2** -how this would extend in production
