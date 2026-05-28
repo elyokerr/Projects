@@ -77,7 +77,7 @@ This kind of framing matters for stakeholder conversations. "Recall is 0.82" is 
 
 ## SHAP Explanations
 
-SHAP values are the gold standard for ML explainability. They have strong theoretical foundations (Shapley values from cooperative game theory) and produce additive, locally accurate explanations - meaning the SHAP values for a single prediction sum to the difference between the model's prediction and the model's average prediction.
+SHAP is what I reached for here because it gives additive, locally accurate explanations: the SHAP values for a single prediction sum to the difference between that prediction and the model's average prediction, and the method has a real theoretical basis (Shapley values from cooperative game theory) rather than being an ad-hoc heuristic.
 
 Three SHAP plots are generated:
 

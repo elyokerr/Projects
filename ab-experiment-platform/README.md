@@ -1,6 +1,6 @@
 # A/B Experiment Platform
 
-**Design, validate, and analyse online experiments the right way.**
+**The full A/B testing lifecycle, from power analysis through to a defensible ship decision.**
 
 A Python library, Streamlit application, and validated simulation suite covering the full
 experiment lifecycle: power design → pre-flight health checks → frequentist and Bayesian analysis

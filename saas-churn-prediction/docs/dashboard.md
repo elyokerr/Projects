@@ -1,10 +1,10 @@
 # Dashboard
 
-A Streamlit dashboard aimed at customer success teams. The goal is to turn the model's output into something a non-technical stakeholder can use directly: at-a-glance KPIs, risk distribution charts, revenue exposure analysis, individual customer drilldown, and a downloadable list of high-risk accounts.
+A Streamlit dashboard aimed at customer success teams. It puts the model output in front of someone non-technical: at-a-glance KPIs, risk distribution charts, revenue exposure analysis, an individual customer drilldown, and a downloadable list of high-risk accounts.
 
 ## Why Streamlit
 
-For internal data tools, Streamlit hits a sweet spot:
+For internal data tools, Streamlit is hard to beat:
 
 - One Python file becomes a fully interactive web app
 - Charts (Plotly, Altair, native) and tables render natively

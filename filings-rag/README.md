@@ -1,6 +1,6 @@
 # Filings-RAG - Question-Answering over UK FTSE 100 Annual Reports
 
-A production-style retrieval-augmented question-answering system over the annual reports of UK FTSE 100 companies. Hybrid retrieval (BM25 + BGE dense vectors), cross-encoder re-ranking, forced citations, and a Ragas evaluation pipeline tracked in MLflow. Streamlit chat UI; designed to deploy to Hugging Face Spaces.
+A retrieval-augmented question-answering system over the annual reports of UK FTSE 100 companies. Hybrid retrieval (BM25 + BGE dense vectors), cross-encoder re-ranking, forced citations, and a Ragas evaluation pipeline tracked in MLflow. Streamlit chat UI; designed to deploy to Hugging Face Spaces.
 
 > **Demo:** _(URL added after Hugging Face Spaces deploy)_
 

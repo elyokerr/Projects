@@ -4,7 +4,7 @@ A FastAPI service that exposes the trained churn model as a REST API. It validat
 
 ## Why FastAPI
 
-FastAPI is the obvious choice for a Python-based ML API in 2026:
+I reached for FastAPI for a few concrete reasons:
 
 - Type hints become input validation automatically through Pydantic
 - Swagger UI and ReDoc are generated for free from the same type hints

@@ -1,6 +1,6 @@
 # Data Science & Machine Learning Portfolio
 
-A curated collection of end-to-end data-science and machine-learning projects. Every project here follows the same internal structure (see [`CONTRIBUTING.md`](CONTRIBUTING.md)) so each one is easy to navigate, reproduce, and review.
+Data-science and machine-learning projects, each taken from raw data through to a running, reviewable deliverable. Every project follows the same internal structure (see [`CONTRIBUTING.md`](CONTRIBUTING.md)), so each one is easy to navigate, reproduce, and review.
 
 ---
 
@@ -8,7 +8,7 @@ A curated collection of end-to-end data-science and machine-learning projects. E
 
 ### [`saas-churn-prediction/`](saas-churn-prediction/) - SaaS Customer Churn Prediction Platform
 
-An end-to-end ML system that predicts which SaaS customers are at risk of cancelling, quantifies the revenue exposure, and surfaces the findings through a REST API and an interactive dashboard. The full stack runs with a single `docker compose up`.
+Predicts which SaaS customers are about to cancel, quantifies the revenue at stake, and serves the results through a REST API and a Streamlit dashboard. The whole stack comes up with a single `docker compose up`.
 
 | Highlight | Value |
 |---|---|
@@ -25,7 +25,7 @@ An end-to-end ML system that predicts which SaaS customers are at risk of cancel
 
 ### [`filings-rag/`](filings-rag/) - Filings-RAG: Question-Answering over UK FTSE 100 Annual Reports
 
-A production-style retrieval-augmented question-answering system over the annual reports of UK FTSE 100 companies. Hybrid retrieval (BM25 + BGE dense vectors), cross-encoder re-ranking, **forced citations**, and a Ragas evaluation pipeline tracked in MLflow. Streamlit chat UI with click-through-to-source citations.
+A retrieval-augmented question-answering system over the annual reports of UK FTSE 100 companies. Hybrid retrieval (BM25 + BGE dense vectors), cross-encoder re-ranking, **forced citations**, and a Ragas evaluation pipeline tracked in MLflow. Streamlit chat UI with click-through-to-source citations.
 
 | Highlight | Value |
 |---|---|
@@ -117,9 +117,9 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full convention and the README 
 
 ## About
 
-These projects are part of an ongoing portfolio focused on **practical, production-style data science** - not just model training, but the surrounding work that makes a model usable: clean data pipelines, honest validation (group splits where it matters), explainability (SHAP), business-framed metrics, and interactive deliverables a stakeholder can actually open.
+These projects are part of an ongoing portfolio focused on **practical data science** — not just model training, but the surrounding work that makes a model usable: clean data pipelines, honest validation (group splits where it matters), explainability (SHAP), business-framed metrics, and interactive deliverables a stakeholder can actually open.
 
-New projects are added regularly. Each one is self-contained, documented end-to-end, and follows the conventions above so the whole repo stays scalable.
+New projects are added as they're built. Each one is self-contained, documented end to end, and follows the conventions above.
 
 ---
 

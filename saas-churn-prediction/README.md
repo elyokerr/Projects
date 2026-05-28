@@ -1,6 +1,6 @@
 # SaaS Customer Churn Prediction Platform
 
-An end-to-end machine learning system that predicts which SaaS customers are likely to cancel their subscriptions, quantifies the revenue exposure, and surfaces the findings through a REST API and an interactive dashboard. The full stack runs with a single `docker compose up` command and is validated by an automated CI pipeline on every push.
+Predicts which SaaS customers are about to cancel, puts a pound figure on the revenue at stake, and serves the results through a REST API and a Streamlit dashboard. `docker compose up` brings the whole stack up; CI runs the linter and tests on every push.
 
 ---
 
@@ -16,18 +16,15 @@ An end-to-end machine learning system that predicts which SaaS customers are lik
 - [Dashboard](#dashboard)
 - [Technology Stack](#technology-stack)
 - [Documentation](#documentation)
-- [Roadmap](#roadmap)
 - [License](#license)
 
 ---
 
 ## The Business Problem
 
-Subscription businesses lose meaningful revenue every time a customer cancels. Industry benchmarks suggest that acquiring a new customer costs anywhere from five to twenty-five times more than retaining an existing one, which makes early identification of at-risk customers one of the highest-leverage applications of machine learning in a SaaS company.
+Every cancellation in a subscription business is lost recurring revenue, and winning a new customer back costs far more than keeping one you already have. So catching at-risk accounts early is worth real money.
 
-The challenge is not just building a model that classifies churners with reasonable accuracy. The hard part is delivering something a customer success team can actually use: predictions that are explainable, scored against business-relevant thresholds, prioritized by revenue exposure, and accessible through tools that non-engineers can navigate.
-
-This project tackles the full problem end-to-end.
+A model that labels churners is only half of it. A customer success team also needs predictions they can explain, scored against a threshold that reflects business cost rather than a default 0.5, ranked by how much revenue is on the line, and reachable from tools they already use. This project covers that whole path, from raw data through to the dashboard a non-engineer would actually open.
 
 ---
 
@@ -41,7 +38,7 @@ This project tackles the full problem end-to-end.
 | Threshold optimization based on business cost | `src/models/train.py`, `docs/modeling.md` |
 | Model explainability with SHAP | `src/models/evaluate.py` |
 | Revenue impact estimation in financial terms | `src/models/train.py` |
-| Production-style REST API with validation and testing | `api/`, `tests/test_api.py` |
+| REST API with request validation and testing | `api/`, `tests/test_api.py` |
 | Interactive dashboard for non-technical stakeholders | `dashboard/app.py` |
 | Multi-service containerization | `docker-compose.yml`, `api/Dockerfile`, `dashboard/Dockerfile` |
 | Continuous integration with linting and testing | `.github/workflows/ci.yml` |
@@ -279,7 +276,7 @@ Response:
 
 ## Dashboard
 
-The Streamlit dashboard turns model output into something a customer success team can use without writing any code. It includes:
+The Streamlit dashboard puts the model output in front of a customer success team without anyone needing to touch code. It includes:
 
 - Five KPI cards summarizing customer base health and revenue exposure
 - Risk-level distribution and revenue breakdown
