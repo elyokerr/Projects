@@ -78,6 +78,26 @@ A library-first online-experimentation toolkit covering the full A/B test lifecy
 
 ---
 
+### [`uk-energy-price-forecasting/`](uk-energy-price-forecasting/) - UK Energy Price Forecasting
+
+Probabilistic day-ahead forecasting of GB wholesale electricity prices. A single **global** model trained across a panel of energy series (price, national demand, generation-by-fuel) produces calibrated quantile forecasts for all 48 half-hourly settlement periods, benchmarked against a full model ladder under rolling-origin backtesting with strict past/future covariate separation (a leakage guard enforces it).
+
+| Highlight | Value |
+|---|---|
+| Pinball loss — skill vs seasonal-naive | **1.44 vs 2.90 (+50%)** ¹ |
+| MAE (median forecast) | **3.95 vs 5.81** ¹ |
+| Model ladder | seasonal-naive → AutoARIMA → global LightGBM → global TFT/TiDE → zero-shot Chronos/TimesFM |
+| Evaluation | rolling-origin backtest · pinball loss · interval coverage · CRPS · skill-vs-naive |
+| Tests | **17 test files** incl. a leakage-guard regression test + `RUN_SLOW` end-to-end smoke |
+
+¹ Reproducible on the committed synthetic fixture panel (no API keys needed). Real GB-market results come from the ENTSO-E live pull plus the Colab training run, where the deep and foundation models join the ablation table.
+
+**Stack:** Python 3.11 · Darts · LightGBM · PyTorch (TFT/TiDE) · Chronos/TimesFM · pandas · pyarrow · Streamlit · Plotly · pytest · ruff · Docker · GitHub Actions · Google Colab (T4)
+
+--> [Open project](uk-energy-price-forecasting/)
+
+---
+
 ## How this repo is organised
 
 ```
@@ -92,7 +112,8 @@ Projects/
 ├── saas-churn-prediction/
 ├── filings-rag/
 ├── uk-housing-mds/
-└── ab-experiment-platform/
+├── ab-experiment-platform/
+└── uk-energy-price-forecasting/
 ```
 
 Every project folder uses the same internal layout:
