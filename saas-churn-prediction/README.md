@@ -1,9 +1,5 @@
 # SaaS Customer Churn Prediction Platform
 
-![CI Pipeline](https://github.com/elyokerr/saas-churn-prediction/actions/workflows/ci.yml/badge.svg)
-![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
-
 An end-to-end machine learning system that predicts which SaaS customers are likely to cancel their subscriptions, quantifies the revenue exposure, and surfaces the findings through a REST API and an interactive dashboard. The full stack runs with a single `docker compose up` command and is validated by an automated CI pipeline on every push.
 
 ---
