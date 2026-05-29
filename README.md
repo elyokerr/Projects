@@ -98,6 +98,24 @@ Probabilistic forecasting of the GB system (imbalance) price. A single **global*
 
 ---
 
+### [`career-gap-agent/`](career-gap-agent/) - AI Career Gap Analyst
+
+A tool-using AI agent that turns live UK job postings into a personalised, evidence-backed skills-gap plan. A single **LangGraph** agent searches Adzuna postings, extracts required skills with an LLM, normalises them to the **ESCO** skills taxonomy by embedding match, and returns a ranked "skills to learn" report where every gap cites how many postings demanded it. Served through a mobile-responsive FastAPI web app and traced with Langfuse.
+
+| Highlight | Value |
+|---|---|
+| Architecture | Single **LangGraph** tool-calling agent with a deterministic groundedness check and a hard iteration cap |
+| Skill matching | LLM extraction normalised to the **ESCO** taxonomy by embedding similarity (skill entity-linking) |
+| Evaluation | Component eval (precision / recall / F1) over a hand-labelled gold set + agent groundedness checks |
+| Observability | **Langfuse** tracing of every agent step, tool call, latency, and token cost |
+| Reproducibility | Runs with **zero secrets** on a committed ESCO index + Adzuna snapshot (36 tests, lint clean) |
+
+**Stack:** Python 3.11 · LangGraph · LangChain (Groq Llama 3.3 70B + Gemini fallback) · fastembed/BGE · ESCO · PyMuPDF · Langfuse · FastAPI · HTMX · Tailwind · Docker · GitHub Actions · Hugging Face Spaces
+
+--> [Open project](career-gap-agent/)
+
+---
+
 ## How this repo is organised
 
 ```
@@ -113,7 +131,8 @@ Projects/
 ├── filings-rag/
 ├── uk-housing-mds/
 ├── ab-experiment-platform/
-└── uk-energy-price-forecasting/
+├── uk-energy-price-forecasting/
+└── career-gap-agent/
 ```
 
 Every project folder uses the same internal layout:

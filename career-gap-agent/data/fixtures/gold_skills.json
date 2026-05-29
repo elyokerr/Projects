@@ -1,0 +1,50 @@
+[
+  {
+    "description": "We are looking for a Data Scientist with strong Python and SQL skills. You will build machine learning models using scikit-learn and PyTorch, and communicate findings to stakeholders.",
+    "esco_skills": ["python (computer programming)", "sql", "machine learning", "scikit-learn", "pytorch", "communication"]
+  },
+  {
+    "description": "Data Engineer role requiring expertise in Apache Spark, dbt (data build tool), and Snowflake. You will design ETL pipelines and work with Google BigQuery for cloud analytics.",
+    "esco_skills": ["apache spark", "dbt (data build tool)", "snowflake", "etl (extract transform load)", "google bigquery", "data engineering"]
+  },
+  {
+    "description": "We need an ML Engineer to deploy models using Docker and Kubernetes on AWS. Experience with MLOps, CI/CD pipelines, and FastAPI for model serving is essential.",
+    "esco_skills": ["docker", "kubernetes", "amazon web services", "mlops", "ci/cd", "fastapi", "model deployment"]
+  },
+  {
+    "description": "Business Intelligence Analyst with Tableau and Power BI experience to build dashboards. You will use SQL and Microsoft Excel for data extraction and reporting.",
+    "esco_skills": ["tableau", "power bi", "sql", "microsoft excel", "business intelligence", "data visualisation"]
+  },
+  {
+    "description": "NLP Engineer with deep learning experience using TensorFlow and Keras. You will work on large language models and prompt engineering for conversational AI products.",
+    "esco_skills": ["natural language processing", "deep learning", "tensorflow", "keras", "large language models", "prompt engineering"]
+  },
+  {
+    "description": "Data Analyst role requiring strong statistics and hypothesis testing skills. You will design A/B testing experiments and perform regression analysis to support product decisions.",
+    "esco_skills": ["statistics", "hypothesis testing", "a/b testing", "regression analysis", "experimental design", "data analysis"]
+  },
+  {
+    "description": "Senior Data Scientist with experience in time series analysis and forecasting. Must be proficient in Python with pandas and numpy, and use Git for version control.",
+    "esco_skills": ["time series analysis", "forecasting", "python (computer programming)", "pandas", "numpy", "git (version control)"]
+  },
+  {
+    "description": "Cloud Data Engineer to build pipelines on Microsoft Azure and Google Cloud Platform. Experience with Apache Kafka and Apache Airflow for streaming and orchestration required.",
+    "esco_skills": ["microsoft azure", "google cloud platform", "apache kafka", "apache airflow", "data engineering"]
+  },
+  {
+    "description": "Computer Vision Engineer with PyTorch expertise to build classification and object detection models. Feature engineering and model deployment experience preferred.",
+    "esco_skills": ["computer vision", "pytorch", "classification", "feature engineering", "model deployment"]
+  },
+  {
+    "description": "Data Scientist with R and Python skills for statistical modelling. The role involves clustering analysis, data modelling, and building LLM applications with LangChain and vector databases.",
+    "esco_skills": ["r (programming language)", "python (computer programming)", "clustering", "data modelling", "langchain", "vector databases"]
+  },
+  {
+    "description": "Analytics Engineer using dbt (data build tool), PostgreSQL, and data warehousing on Snowflake. Looker for dashboarding and strong stakeholder management skills expected.",
+    "esco_skills": ["dbt (data build tool)", "postgresql", "data warehousing", "snowflake", "looker", "stakeholder management"]
+  },
+  {
+    "description": "Machine Learning platform engineer to maintain XGBoost and TensorFlow training infrastructure. Must know Docker, Kubernetes, and agile methodology. REST API design a plus.",
+    "esco_skills": ["xgboost", "tensorflow", "docker", "kubernetes", "agile methodology", "rest api", "machine learning"]
+  }
+]
