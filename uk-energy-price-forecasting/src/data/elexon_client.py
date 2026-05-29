@@ -83,6 +83,20 @@ def _request(
     raise RuntimeError(f"All 3 attempts failed for {url}") from last_exc
 
 
+# Elexon dataset endpoints cap the queryable window. FUELHH allows 7 days;
+# /demand/outturn allows ~14. We chunk both at 7 days to stay safely under.
+_MAX_RANGE_DAYS = 7
+
+
+def _date_chunks(date_from: date, date_to: date, max_days: int = _MAX_RANGE_DAYS):
+    """Yield (start, end) inclusive sub-ranges no longer than ``max_days``."""
+    start = date_from
+    while start <= date_to:
+        end = min(start + timedelta(days=max_days - 1), date_to)
+        yield start, end
+        start = end + timedelta(days=1)
+
+
 def _cache_path(endpoint: str, date_from: date, date_to: date) -> Path:
     return (
         _CACHE_ROOT
@@ -143,22 +157,27 @@ def fetch_generation_by_fuel(
         return cached
 
     url = f"{_BASE_URL}/datasets/FUELHH"
-    params = {
-        "settlementDateFrom": date_from.isoformat(),
-        "settlementDateTo": date_to.isoformat(),
-    }
-    raw = _request(url, params, transport)
-
-    records = raw.get("data", [])
     rows = []
-    for rec in records:
-        rows.append({
-            "timestamp": _parse_utc_timestamp(rec[_FUELHH_TIMESTAMP_FIELD]),
-            "fuel": rec[_FUELHH_FUEL_FIELD],
-            "mw": float(rec[_FUELHH_MW_FIELD]),
-        })
+    for chunk_from, chunk_to in _date_chunks(date_from, date_to):
+        params = {
+            "settlementDateFrom": chunk_from.isoformat(),
+            "settlementDateTo": chunk_to.isoformat(),
+        }
+        raw = _request(url, params, transport)
+        for rec in raw.get("data", []):
+            rows.append({
+                "timestamp": _parse_utc_timestamp(rec[_FUELHH_TIMESTAMP_FIELD]),
+                "fuel": rec[_FUELHH_FUEL_FIELD],
+                "mw": float(rec[_FUELHH_MW_FIELD]),
+            })
+        if transport is not None:
+            # In tests the transport serves a single fixed payload; one pass.
+            break
 
     df = pd.DataFrame(rows, columns=["timestamp", "fuel", "mw"])
+    df = df.drop_duplicates(["timestamp", "fuel"]).sort_values(
+        ["timestamp", "fuel"]
+    ).reset_index(drop=True)
 
     if transport is None:
         _save_cache(df, cache_file)
@@ -195,22 +214,25 @@ def fetch_demand(
         return cached
 
     url = f"{_BASE_URL}/demand/outturn"
-    params = {
-        "settlementDateFrom": date_from.isoformat(),
-        "settlementDateTo": date_to.isoformat(),
-    }
-    raw = _request(url, params, transport)
-
     rows = []
-    for rec in raw.get("data", []):
-        rows.append({
-            "timestamp": _parse_utc_timestamp(rec[_DEMAND_TIMESTAMP_FIELD]),
-            "indo": float(rec[_DEMAND_INDO_FIELD]),
-            "itsdo": float(rec[_DEMAND_ITSDO_FIELD]),
-        })
+    for chunk_from, chunk_to in _date_chunks(date_from, date_to):
+        params = {
+            "settlementDateFrom": chunk_from.isoformat(),
+            "settlementDateTo": chunk_to.isoformat(),
+        }
+        raw = _request(url, params, transport)
+        for rec in raw.get("data", []):
+            rows.append({
+                "timestamp": _parse_utc_timestamp(rec[_DEMAND_TIMESTAMP_FIELD]),
+                "indo": float(rec[_DEMAND_INDO_FIELD]),
+                "itsdo": float(rec[_DEMAND_ITSDO_FIELD]),
+            })
+        if transport is not None:
+            # In tests the transport serves a single fixed payload; one pass.
+            break
 
     df = pd.DataFrame(rows, columns=["timestamp", "indo", "itsdo"])
-    df = df.sort_values("timestamp").reset_index(drop=True)
+    df = df.drop_duplicates("timestamp").sort_values("timestamp").reset_index(drop=True)
 
     if transport is None:
         _save_cache(df, cache_file)
