@@ -1,6 +1,6 @@
 # UK Energy Price Forecasting
 
-> Probabilistic day-ahead forecasting of GB wholesale electricity prices — a single global model across a panel of energy series, evaluated by rolling-origin backtesting.
+> Probabilistic forecasting of the GB system (imbalance) price — a single global model across a panel of energy series, evaluated by rolling-origin backtesting.
 
 ---
 
@@ -36,9 +36,11 @@ Rolling-origin backtest, 48-settlement-period horizon. Global LightGBM vs the se
 
 ## The Business Problem
 
-GB wholesale electricity prices are set in a day-ahead auction and are highly volatile — driven by demand, the generation mix (especially intermittent wind and solar), and fuel costs. When low renewable output coincides with high demand, prices spike; when renewables are abundant, prices can fall toward or below zero.
+The GB electricity **system (imbalance) price** settles the difference between what generators and suppliers contracted and what they actually delivered each half-hour. It is highly volatile — driven by demand, the generation mix (especially intermittent wind and solar), and the system's real-time balancing position — and routinely goes negative when renewables are abundant or spikes sharply when the system is short.
 
-For anyone acting on tomorrow's prices — energy traders placing day-ahead bids, battery and flexibility operators scheduling charge/discharge, grid risk teams sizing exposure — a single point forecast is not enough. The cost of being wrong is concentrated in the tails. This system forecasts the full next-day half-hourly price curve **with calibrated uncertainty intervals**, so the shape and the risk are both explicit.
+For anyone exposed to imbalance — battery and flexibility operators deciding when to charge/discharge, suppliers and generators managing their balancing position, trading desks — a single point forecast is not enough. The cost of being wrong is concentrated in the tails. This system forecasts the full next-day half-hourly price curve (48 settlement periods) **with calibrated uncertainty intervals**, so the shape and the risk are both explicit.
+
+*(The system price is the currently-published GB price series. The GB day-ahead auction price is no longer available from ENTSO-E post-Brexit — see [`data/README.md`](data/README.md).)*
 
 ---
 
@@ -79,7 +81,13 @@ Interactive app (runs on the fixture panel with zero secrets):
 streamlit run app/streamlit_app.py
 ```
 
-Using live data requires a free ENTSO-E token — see [`data/README.md`](data/README.md).
+Build a real GB panel (no API key needed — Elexon is open):
+
+```bash
+python scripts/build_real_panel.py --start 2023-01-01 --end 2024-12-31
+```
+
+See [`data/README.md`](data/README.md) for sources.
 
 ---
 
@@ -110,11 +118,11 @@ uk-energy-price-forecasting/
 
 ## Methodology
 
-1. **Data ingestion** — half-hourly generation-by-fuel, demand, and wind/solar forecast from the Elexon BMRS Insights API; GB day-ahead price from the ENTSO-E Transparency Platform. Raw responses cached to parquet.
+1. **Data ingestion** — half-hourly generation-by-fuel, demand out-turn, and the GB system (imbalance) price from the Elexon BMRS API (no key required). Raw responses cached to parquet.
 2. **Panel construction** — all series aligned to the 48-settlement-period grid (clock-change days handled), assembled into a Darts panel with strictly typed past covariates (out-turn demand/generation) and future covariates (deterministic calendar features). A leakage guard enforces that no out-turn data ever enters the future-covariate set.
 3. **Model ladder** — seasonal-naive → statistical (Theta/AutoARIMA) → global LightGBM (quantile) → global deep models (TFT/TiDE, quantile likelihood) → zero-shot foundation model (Chronos/TimesFM) as a benchmark.
 4. **Evaluation** — rolling-origin backtesting: the forecast origin advances day-by-day across a held-out window; every model is scored on identical origins. Metrics: pinball loss, interval coverage, CRPS, plus MAE/RMSE/sMAPE and skill-vs-naive.
-5. **Deployment** — a Streamlit app serves the day-ahead fan chart and a backtest explorer; inference is decoupled from training (models are trained in Colab and loaded by the app).
+5. **Deployment** — a Streamlit app serves the next-day forecast fan chart and a backtest explorer; inference is decoupled from training (models are trained in Colab and loaded by the app).
 
 Full detail in [`docs/methodology.md`](docs/methodology.md).
 
@@ -139,9 +147,9 @@ Full detail in [`docs/methodology.md`](docs/methodology.md).
 
 ## Limitations & Next Steps
 
-- **Synthetic fixture for reproducibility** — the committed results use a synthetic panel so the repo runs without secrets. Real GB-market results require the live-data pull (ENTSO-E token) and the Colab training run.
-- **Live API field names pending confirmation** — the Elexon field names and ENTSO-E XML namespace are coded against published docs and flagged for confirmation against a live response (see `data/README.md`).
-- **Prices in published currency** — ENTSO-E publishes GB day-ahead prices in EUR/MWh; no FX conversion is invented. A clean free GBP series (or a documented FX source) is a future addition.
+- **Synthetic fixture for the committed hero numbers** — the table above is computed on a synthetic panel so the repo runs without secrets. Real GB-market results come from the open Elexon pull (`scripts/build_real_panel.py`) plus the Colab training run.
+- **Target is the imbalance price, not the day-ahead auction price** — the GB day-ahead price is no longer published by ENTSO-E post-Brexit (data ends 2020). The system/imbalance price is the current, free, GB-specific alternative; it is more volatile, so absolute errors look larger than a day-ahead series would.
+- **Single imbalance price assumption** — uses `systemSellPrice` (= `systemBuyPrice` under the GB single-price regime).
 - **Next: regional series** — extending the panel to grid-supply-point regions enlarges the global-model panel with no architectural change.
 - **Next: conformal intervals** — distribution-free coverage guarantees on top of the quantile forecasts.
 - **Next: scheduled retraining** — moving the Colab training into an orchestrated incremental-refit flow.

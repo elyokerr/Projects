@@ -2,6 +2,9 @@
 
 *Date: 2026-05-26*
 
+> **Addendum (2026-05-29): forecast target changed from day-ahead price to system (imbalance) price.**
+> This document was written targeting the GB **day-ahead auction price** from the ENTSO-E Transparency Platform. On verifying against the live API, ENTSO-E was found to publish **no GB price data from 2021 onward** — post-Brexit, GB left the EU single electricity market. The project therefore targets the Elexon **system (imbalance) price** (`systemSellPrice`), which is current, free (no API key), and authentically GB-specific. Everywhere this document says "day-ahead price", read "system/imbalance price"; the half-hourly 48-settlement-period horizon, the global-model approach, the covariates, the leakage discipline, and the entire evaluation methodology are unchanged. Prices are GBP/MWh (no FX needed) and can be negative. The ENTSO-E client is retained for pre-2021 GB data and other European zones but is not in the live pipeline. See `data/README.md`.
+
 ## 1. Project overview
 
 A probabilistic, day-ahead forecasting system for GB wholesale electricity prices. The system forecasts the half-hourly day-ahead price for all 48 settlement periods of the next delivery day and reports calibrated uncertainty intervals alongside the central estimate.

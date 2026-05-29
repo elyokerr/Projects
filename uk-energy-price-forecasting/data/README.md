@@ -4,18 +4,25 @@ All data sources are free. The repository runs end-to-end without any of them vi
 
 ## Sources
 
-### Elexon BMRS Insights API
-- **What:** generation by fuel type (`FUELHH`), national demand out-turn and initial estimate (`INDO` / `ITSDO`), embedded wind/solar forecast.
-- **Access:** `https://data.elexon.co.uk/bmrs/api/v1` -no API key required.
-- **Client:** `src/data/elexon_client.py`.
-- **⚠️ Pending verification:** the exact response field names (`startTime`, `fuelType`, `generation`, `demand`) and query parameter names are coded against the published Elexon Insights documentation but have not been confirmed against a live response. Confirm against a real call before using live data; the public function signatures are stable.
+### Elexon BMRS — the data source for everything
 
-### ENTSO-E Transparency Platform
-- **What:** GB day-ahead auction price (documentType `A44`, domain `10YGB----------A`).
-- **Access:** requires a **free** API token. Register at <https://transparency.entsoe.eu/>, then request API access by emailing **transparency@entsoe.eu** (free; typically granted within a day). Set the token as the `ENTSOE_TOKEN` environment variable.
-- **Client:** `src/data/entsoe_client.py`.
-- ** Pending verification:** the XML namespace and element paths (`TimeSeries > Period > Point > price.amount`) and the `securityToken` parameter name are coded against the ENTSO-E schema docs but not confirmed against a live A44 response.
-- **Currency:** ENTSO-E publishes GB day-ahead prices in **EUR/MWh**. No FX conversion is applied -prices are stored in the published currency. A clean free GBP series (or a documented FX source) is a future addition; inventing an FX series would be dishonest.
+No API key required. Base URL `https://data.elexon.co.uk/bmrs/api/v1`. Client: `src/data/elexon_client.py`. All field names and endpoints below were **confirmed against live responses on 2026-05-29**.
+
+- **Generation by fuel** (`/datasets/FUELHH`) → `fetch_generation_by_fuel`. Half-hourly MW per fuel type (CCGT, WIND, NUCLEAR, BIOMASS, interconnectors, etc.).
+- **Demand out-turn** (`/demand/outturn`) → `fetch_demand`. Returns both INDO (`initialDemandOutturn`) and ITSDO (`initialTransmissionSystemDemandOutturn`) per settlement period in one response.
+- **System (imbalance) price** (`/balancing/settlement/system-prices/{date}`) → `fetch_system_price`. This is the forecast **target**. GB operates a single imbalance price (System Sell Price = System Buy Price), so `systemSellPrice` is used. One request per day; the client iterates a date range and caches. Prices are **GBP/MWh** and can be **negative** (genuine GB market behaviour — the client never clips them).
+
+Build a real panel with:
+
+```bash
+python scripts/build_real_panel.py --start 2023-01-01 --end 2024-12-31
+```
+
+This writes `data/processed/real_panel.parquet` (same wide schema as the fixture). Load it with `src.build.fixtures.load_panel_from_parquet(path)`.
+
+### Why not ENTSO-E day-ahead price?
+
+The original design targeted the GB **day-ahead auction** price from the ENTSO-E Transparency Platform. Confirmed against the live API (2026-05-29): **ENTSO-E has no GB price data from 2021 onward** — following Brexit, GB left the EU single electricity market and stopped publishing to ENTSO-E (data exists only up to end-2020). The project therefore targets the Elexon **system (imbalance) price**, which is current, post-Brexit, free, and authentically GB-specific. The ENTSO-E client (`src/data/entsoe_client.py`) is retained and works for pre-2021 GB data and other European bidding zones, but is not used in the live pipeline.
 
 ## The fixture panel
 
