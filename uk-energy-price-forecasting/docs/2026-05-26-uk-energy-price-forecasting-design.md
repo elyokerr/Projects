@@ -1,15 +1,15 @@
-# UK Energy Price Forecasting — Design Document
+# UK Energy Price Forecasting: Design Document
 
 *Date: 2026-05-26*
 
 > **Addendum (2026-05-29): forecast target changed from day-ahead price to system (imbalance) price.**
-> This document was written targeting the GB **day-ahead auction price** from the ENTSO-E Transparency Platform. On verifying against the live API, ENTSO-E was found to publish **no GB price data from 2021 onward** — post-Brexit, GB left the EU single electricity market. The project therefore targets the Elexon **system (imbalance) price** (`systemSellPrice`), which is current, free (no API key), and authentically GB-specific. Everywhere this document says "day-ahead price", read "system/imbalance price"; the half-hourly 48-settlement-period horizon, the global-model approach, the covariates, the leakage discipline, and the entire evaluation methodology are unchanged. Prices are GBP/MWh (no FX needed) and can be negative. The ENTSO-E client is retained for pre-2021 GB data and other European zones but is not in the live pipeline. See `data/README.md`.
+> This document was written targeting the GB **day-ahead auction price** from the ENTSO-E Transparency Platform. On verifying against the live API, ENTSO-E was found to publish **no GB price data from 2021 onward**: post-Brexit, GB left the EU single electricity market. The project therefore targets the Elexon **system (imbalance) price** (`systemSellPrice`), which is current, free (no API key), and authentically GB-specific. Everywhere this document says "day-ahead price", read "system/imbalance price"; the half-hourly 48-settlement-period horizon, the global-model approach, the covariates, the leakage discipline, and the entire evaluation methodology are unchanged. Prices are GBP/MWh (no FX needed) and can be negative. The ENTSO-E client is retained for pre-2021 GB data and other European zones but is not in the live pipeline. See `data/README.md`.
 
 ## 1. Project overview
 
 A probabilistic, day-ahead forecasting system for GB wholesale electricity prices. The system forecasts the half-hourly day-ahead price for all 48 settlement periods of the next delivery day and reports calibrated uncertainty intervals alongside the central estimate.
 
-Forecasts are produced by a single **global** model trained jointly across a panel of related GB energy series — day-ahead price, national demand, and generation by fuel type — rather than by fitting an independent model per series. The headline evaluated target is day-ahead price; the wider panel supplies both training signal and covariates.
+Forecasts are produced by a single **global** model trained jointly across a panel of related GB energy series (day-ahead price, national demand, and generation by fuel type) rather than by fitting an independent model per series. The headline evaluated target is day-ahead price; the wider panel supplies both training signal and covariates.
 
 The project is built end-to-end: data ingestion from public APIs, a reproducible feature/panel build, a ladder of forecasting models from naive baselines through global deep-learning models, a rolling-origin backtesting harness, probabilistic evaluation, and an interactive Streamlit application.
 
@@ -17,15 +17,15 @@ The project is built end-to-end: data ingestion from public APIs, a reproducible
 
 GB wholesale electricity prices are set in a day-ahead auction and are highly volatile. Price is driven by national demand, the generation mix (in particular intermittent wind and solar), interconnector flows, and fuel costs. Periods of low renewable output coincident with high demand produce sharp price spikes; periods of high renewable output can drive prices toward or below zero.
 
-For decisions that depend on the next day's prices, a single point forecast is insufficient because the cost of being wrong is asymmetric and concentrated in the tails. The system therefore produces **probabilistic** forecasts — quantiles and prediction intervals — so that the shape and uncertainty of the next-day price curve are explicit.
+For decisions that depend on the next day's prices, a single point forecast is insufficient because the cost of being wrong is asymmetric and concentrated in the tails. The system therefore produces **probabilistic** forecasts (quantiles and prediction intervals) so that the shape and uncertainty of the next-day price curve are explicit.
 
 The system must defend a concrete claim: a global deep-learning model with appropriate covariates and a probabilistic output forecasts day-ahead price more accurately than (a) a seasonal-naive baseline and (b) a zero-shot time-series foundation model, measured by pinball loss and interval coverage under rolling-origin backtesting.
 
 ## 3. Users
 
-- **Energy trader / analyst** — needs the next-day half-hourly price curve with uncertainty intervals to inform day-ahead bids and hedging.
-- **Battery / flexibility operator** — needs the expected price *shape* across the 48 settlement periods to schedule charging and discharging against intraday spreads.
-- **Grid / risk analyst** — needs calibrated intervals to quantify exposure to price spikes.
+- **Energy trader / analyst**: needs the next-day half-hourly price curve with uncertainty intervals to inform day-ahead bids and hedging.
+- **Battery / flexibility operator**: needs the expected price *shape* across the 48 settlement periods to schedule charging and discharging against intraday spreads.
+- **Grid / risk analyst**: needs calibrated intervals to quantify exposure to price spikes.
 
 The interactive application targets the first two directly: a forecast view for the next-day curve and a backtest view for inspecting historical model behaviour.
 
@@ -43,8 +43,8 @@ All sources are free and reproducible.
 - **Panel composition:** day-ahead price plus national demand plus generation-by-fuel series (roughly 8–12 series depending on fuel categories published).
 - **Settlement-period grid:** all series are aligned to the 48-settlement-period day. Clock-change days (46 or 50 periods) are handled explicitly.
 - **Covariate typing:**
-  - *Past covariates* — generation out-turn and demand out-turn (known only up to the forecast origin).
-  - *Future covariates* — calendar features and published wind/solar forecasts (known for the delivery day at forecast time).
+  - *Past covariates*: generation out-turn and demand out-turn (known only up to the forecast origin).
+  - *Future covariates*: calendar features and published wind/solar forecasts (known for the delivery day at forecast time).
 - **No-secrets fixture:** a small committed fixture panel allows the test suite and the application demo to run without any API tokens.
 
 ## 5. Tech stack
@@ -127,9 +127,9 @@ uk-energy-price-forecasting/
 
 - **Rolling-origin (expanding-window) backtesting.** The forecast origin is fixed at successive day boundaries; at each origin the model forecasts the next 48 settlement periods; the origin then advances across the held-out period (approximately the final six months). Every model is scored on the identical set of origins, giving a like-for-like comparison and avoiding single-split luck.
 - **Probabilistic metrics (primary):**
-  - **Pinball / quantile loss** averaged across forecast quantiles — the headline metric.
-  - **Interval coverage** at the 80% and 90% nominal levels — the empirical proportion of out-turns falling inside the predicted interval.
-  - **CRPS** — overall sharpness-and-calibration summary.
+  - **Pinball / quantile loss** averaged across forecast quantiles. The headline metric.
+  - **Interval coverage** at the 80% and 90% nominal levels: the empirical proportion of out-turns falling inside the predicted interval.
+  - **CRPS**: overall sharpness-and-calibration summary.
 - **Point metrics (secondary):** MAE, RMSE, sMAPE on the predictive median, for intuition.
 - **Skill scores:** every model is reported as a percentage improvement over the seasonal-naive baseline, making the practical value of each model explicit.
 - **Ablation table** (headline artifact): rows are the models in the ladder (seasonal-naive, Theta/AutoARIMA, global LightGBM, global TFT/TiDE, zero-shot Chronos/TimesFM); columns are pinball, coverage@90, CRPS, MAE, and skill-vs-naive.
@@ -139,7 +139,7 @@ uk-energy-price-forecasting/
 ## 9. Error handling
 
 - **API ingestion:** retry with backoff on Elexon and ENTSO-E rate limits; raw responses cached to parquet so re-runs do not re-hit the APIs; the expected settlement-period count per day is validated (48 normally; 46 or 50 on clock-change days handled explicitly).
-- **Missing or irregular data:** gaps are flagged and imputed under a documented rule — short gaps forward-filled, long gaps dropped and logged. Values are never silently zero-filled.
+- **Missing or irregular data:** gaps are flagged and imputed under a documented rule: short gaps forward-filled, long gaps dropped and logged. Values are never silently zero-filled.
 - **Compute limits:** foundation-model and deep-model code guards against out-of-memory and quota exhaustion by falling back to CPU or a reduced context window. Notebooks guard on the absence of a saved panel and skip gracefully so the repository runs without secrets.
 - **No-secrets operation:** a committed fixture panel backs the test suite and the application demo, so neither requires API tokens.
 
@@ -158,8 +158,8 @@ uk-energy-price-forecasting/
 ## 11. Deployment
 
 - **Streamlit Community Cloud** (free) hosts the public demo with two views:
-  1. **Day-ahead forecast** — a fan chart of the 48-settlement-period price curve with 80% and 90% intervals, served from a cached trained model and the latest panel.
-  2. **Backtest explorer** — selection of a model and a historical origin, with the forecast overlaid on the realised out-turn and the metrics for that window.
+  1. **Day-ahead forecast**: a fan chart of the 48-settlement-period price curve with 80% and 90% intervals, served from a cached trained model and the latest panel.
+  2. **Backtest explorer**: selection of a model and a historical origin, with the forecast overlaid on the realised out-turn and the metrics for that window.
 - **Inference is decoupled from training.** Trained artifacts produced in Colab are loaded by the application; the application never trains, keeping it within Community Cloud resource limits.
 - **Docker** provides local and reproducible runs with parity to the cloud deployment.
 - **Secrets are optional.** The committed fixture panel allows the demo to run with no tokens; a live mode reads API tokens from environment variables when present.

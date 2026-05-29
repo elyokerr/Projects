@@ -80,17 +80,17 @@ A library-first online-experimentation toolkit covering the full A/B test lifecy
 
 ### [`uk-energy-price-forecasting/`](uk-energy-price-forecasting/) - UK Energy Price Forecasting
 
-Probabilistic day-ahead forecasting of GB wholesale electricity prices. A single **global** model trained across a panel of energy series (price, national demand, generation-by-fuel) produces calibrated quantile forecasts for all 48 half-hourly settlement periods, benchmarked against a full model ladder under rolling-origin backtesting with strict past/future covariate separation (a leakage guard enforces it).
+Probabilistic forecasting of the GB system (imbalance) price. A single **global** model trained across a panel of energy series (price, national demand, generation-by-fuel) produces calibrated quantile forecasts for all 48 half-hourly settlement periods, benchmarked against a full model ladder under rolling-origin backtesting with strict past/future covariate separation (a leakage guard enforces it).
 
 | Highlight | Value |
 |---|---|
-| Pinball loss — skill vs seasonal-naive | **1.44 vs 2.90 (+50%)** ¹ |
-| MAE (median forecast) | **3.95 vs 5.81** ¹ |
+| Best model (TFT) pinball loss vs seasonal-naive | **7.98 vs 16.94 (+53% skill)** ¹ |
+| Best model (TFT) MAE vs seasonal-naive | **25.35 vs 33.88** ¹ |
+| Best model (TFT) 80% interval coverage | **0.76** (nominal 0.80) |
 | Model ladder | seasonal-naive → AutoARIMA → global LightGBM → global TFT/TiDE → zero-shot Chronos/TimesFM |
-| Evaluation | rolling-origin backtest · pinball loss · interval coverage · CRPS · skill-vs-naive |
 | Tests | **17 test files** incl. a leakage-guard regression test + `RUN_SLOW` end-to-end smoke |
 
-¹ Reproducible on the committed synthetic fixture panel (no API keys needed). Real GB-market results come from the ENTSO-E live pull plus the Colab training run, where the deep and foundation models join the ablation table.
+¹ Real 2024 GB imbalance-price data, GBP/MWh, every model scored on identical rolling origins. The Elexon pull needs no API key (`scripts/build_real_panel.py`); the committed synthetic fixture panel reproduces the pipeline with no data download.
 
 **Stack:** Python 3.11 · Darts · LightGBM · PyTorch (TFT/TiDE) · Chronos/TimesFM · pandas · pyarrow · Streamlit · Plotly · pytest · ruff · Docker · GitHub Actions · Google Colab (T4)
 
@@ -138,7 +138,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full convention and the README 
 
 ## About
 
-These projects are part of an ongoing portfolio focused on **practical data science** — not just model training, but the surrounding work that makes a model usable: clean data pipelines, honest validation (group splits where it matters), explainability (SHAP), business-framed metrics, and interactive deliverables a stakeholder can actually open.
+These projects are part of an ongoing portfolio focused on practical data science: not just model training, but the surrounding work that makes a model usable, such as clean data pipelines, honest validation (group splits where it matters), explainability (SHAP), business-framed metrics, and interactive deliverables a stakeholder can actually open.
 
 New projects are added as they're built. Each one is self-contained, documented end to end, and follows the conventions above.
 

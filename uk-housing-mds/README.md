@@ -1,8 +1,8 @@
-# UK Housing Market — Modern Data Stack
+# UK Housing Market: Modern Data Stack
 
 > A scheduled batch ELT pipeline that ingests UK Land Registry PPD, ONS NSPL, and UK HPI, models them through dbt against DuckDB (dev/CI) and BigQuery (prod), validates them with Great Expectations + dbt tests, and publishes an Evidence.dev analytics site to GitHub Pages.
 
-![Evidence homepage — hero and headline stats](reports/figures/01_home_hero.png)
+![Evidence homepage: hero and headline stats](reports/figures/01_home_hero.png)
 
 ---
 
@@ -27,10 +27,10 @@ The pipeline's user-facing output is an Evidence.dev static site published to Gi
 
 | Page | Screenshot |
 |---|---|
-| Homepage — headline stats + featured chart + navigation | [`01_home_hero.png`](reports/figures/01_home_hero.png) · [`02_home_charts.png`](reports/figures/02_home_charts.png) · [`03_home_nav.png`](reports/figures/03_home_nav.png) |
-| Regional trends — region dropdown + monthly median price + LA volume | [`04_regional_trends.png`](reports/figures/04_regional_trends.png) |
-| Premium vs HPI benchmark — LA dropdown + LA-vs-HPI line + top-10 premium table | [`05_premium_vs_benchmark.png`](reports/figures/05_premium_vs_benchmark.png) |
-| Data quality — pipeline health BigValue cards | [`06_data_quality.png`](reports/figures/06_data_quality.png) |
+| Homepage: headline stats + featured chart + navigation | [`01_home_hero.png`](reports/figures/01_home_hero.png) · [`02_home_charts.png`](reports/figures/02_home_charts.png) · [`03_home_nav.png`](reports/figures/03_home_nav.png) |
+| Regional trends: region dropdown + monthly median price + LA volume | [`04_regional_trends.png`](reports/figures/04_regional_trends.png) |
+| Premium vs HPI benchmark: LA dropdown + LA-vs-HPI line + top-10 premium table | [`05_premium_vs_benchmark.png`](reports/figures/05_premium_vs_benchmark.png) |
+| Data quality: pipeline health BigValue cards | [`06_data_quality.png`](reports/figures/06_data_quality.png) |
 
 <table>
 <tr>
@@ -47,7 +47,7 @@ The pipeline's user-facing output is an Evidence.dev static site published to Gi
 
 ## The Business Problem
 
-UK residential property transactions are public data, but the relevant sources are fragmented across three government bodies and three formats. Anyone wanting to ask the obvious analytical questions — *how have transaction volumes in a given region moved against the national HPI since a given year?*, *which local authorities are trading above or below their long-run HPI benchmark?* — first has to download multiple bulk files, reconcile postcode-to-geography lookups, join against a monthly index series, and re-run the whole process every time fresh data is published.
+UK residential property transactions are public data, but the relevant sources are fragmented across three government bodies and three formats. Anyone wanting to ask the obvious analytical questions, such as how transaction volumes in a given region have moved against the national HPI since a given year, or which local authorities are trading above or below their long-run HPI benchmark, first has to download multiple bulk files, reconcile postcode-to-geography lookups, join against a monthly index series, and re-run the whole process every time fresh data is published.
 
 This pipeline solves that by producing a refreshed, benchmarked, geo-enriched warehouse of UK residential transactions on a fixed monthly schedule. The output is queryable two ways: directly against the published DuckDB file (downloaded as a GitHub Release asset) or against the public BigQuery dataset; or browsed through an Evidence.dev analytics site published to GitHub Pages.
 
@@ -59,12 +59,12 @@ The system runs end-to-end on free infrastructure: GitHub Actions cron for sched
 
 The repository structure points at the technical surface area:
 
-- `flows/` — Prefect 2 orchestration (ingest → GE → load → dbt → Evidence)
-- `dbt_project/models/` — five-layer dbt project (staging → intermediate → marts/core → marts/analytics)
-- `dbt_project/tests/` — three singular tests for cross-table invariants
-- `great_expectations/` — three landing-zone suites and a unifying checkpoint
-- `evidence/` — Evidence.dev BI site (3 analysis pages + data quality page)
-- `.github/workflows/` — CI (lint + tests + dbt build), monthly cron, Evidence publish
+- `flows/`: Prefect 2 orchestration (ingest → GE → load → dbt → Evidence)
+- `dbt_project/models/`: five-layer dbt project (staging → intermediate → marts/core → marts/analytics)
+- `dbt_project/tests/`: three singular tests for cross-table invariants
+- `great_expectations/`: three landing-zone suites and a unifying checkpoint
+- `evidence/`: Evidence.dev BI site (3 analysis pages + data quality page)
+- `.github/workflows/`: CI (lint + tests + dbt build), monthly cron, Evidence publish
 
 ---
 
