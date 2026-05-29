@@ -22,6 +22,11 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+# Load .env so GROQ_API_KEY / GOOGLE_API_KEY / ADZUNA / LANGFUSE keys are picked up
+from dotenv import load_dotenv
+
+load_dotenv()
+
 app = FastAPI(title="Career Gap Agent")
 
 _TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"

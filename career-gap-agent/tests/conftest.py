@@ -12,6 +12,14 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
+# Load .env so the gated e2e eval picks up GROQ_API_KEY / GOOGLE_API_KEY
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(_PROJECT_ROOT / ".env")
+except ImportError:
+    pass
+
 import pytest  # noqa: E402
 
 
