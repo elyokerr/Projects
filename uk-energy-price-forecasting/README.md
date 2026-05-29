@@ -144,12 +144,3 @@ Full detail in [`docs/methodology.md`](docs/methodology.md).
 | Google Colab (T4) | Deep-model training |
 
 ---
-
-## Limitations & Next Steps
-
-- **Target is the imbalance price, not the day-ahead auction price.** The GB day-ahead price is no longer published by ENTSO-E after Brexit (data ends 2020). The system/imbalance price is the current, free, GB-specific alternative. It is more volatile, so absolute errors are larger than a day-ahead series would give.
-- **Single imbalance price assumption.** Uses `systemSellPrice`, which equals `systemBuyPrice` under the GB single-price regime.
-- **Deep models trained on a one-year window.** The headline run uses 2024. A longer history would give a more stable backtest.
-- **Next: regional series.** Extending the panel to grid-supply-point regions enlarges the global-model panel with no architectural change.
-- **Next: conformal intervals.** Distribution-free coverage guarantees on top of the quantile forecasts.
-- **Next: scheduled retraining.** Moving the Colab training into an orchestrated incremental-refit flow.
