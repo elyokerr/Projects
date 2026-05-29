@@ -17,13 +17,12 @@ import os
 from functools import lru_cache
 from typing import Annotated
 
+# Load .env so GROQ_API_KEY / GOOGLE_API_KEY / ADZUNA / LANGFUSE keys are picked up
+from dotenv import load_dotenv
 from fastapi import FastAPI, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-
-# Load .env so GROQ_API_KEY / GOOGLE_API_KEY / ADZUNA / LANGFUSE keys are picked up
-from dotenv import load_dotenv
 
 load_dotenv()
 
