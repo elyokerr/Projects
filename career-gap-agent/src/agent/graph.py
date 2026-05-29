@@ -13,6 +13,7 @@ from langgraph.graph import END, StateGraph
 from src.agent.nodes import (
     MAX_ITERATIONS,
     has_tool_calls,
+    is_grounded,
     planner_node,
     reflection_node,
     tool_node,
@@ -39,7 +40,9 @@ def build_graph(llm: Any, deps: AgentDeps):
 
     def route_after_planner(state: AgentState) -> str:
         last = state["messages"][-1]
-        return "tools" if has_tool_calls(last) else "reflection"
+        if has_tool_calls(last) and state.get("iterations", 0) < MAX_ITERATIONS:
+            return "tools"
+        return "reflection"
 
     graph.add_conditional_edges(
         "planner",
@@ -51,8 +54,6 @@ def build_graph(llm: Any, deps: AgentDeps):
 
     def route_after_reflection(state: AgentState) -> str:
         # reflection_node appends a corrective message iff ungrounded & under cap.
-        from src.agent.nodes import is_grounded
-
         report = state.get("report")
         if report is None:
             return END

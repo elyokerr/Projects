@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import pytest
 from langchain_core.messages import AIMessage, HumanMessage
+from langgraph.errors import GraphRecursionError
 
 from src.agent.graph import build_graph
+from src.agent.nodes import MAX_ITERATIONS
 from src.agent.tools import AgentDeps
 
 
@@ -75,3 +78,57 @@ def test_graph_runs_end_to_end_with_stub(esco_matcher):
 
     assert final["report"] is not None
     assert final["iterations"] <= 6
+
+
+class AlwaysToolCallLLM:
+    """Stub LLM that ALWAYS returns an analyse_postings tool call, never a final message.
+
+    Used to verify the planner-tools loop is capped by MAX_ITERATIONS.
+    """
+
+    def __init__(self):
+        self.calls = 0
+
+    def bind_tools(self, tools):  # noqa: ARG002
+        return self
+
+    def invoke(self, messages):  # noqa: ARG002
+        self.calls += 1
+        return AIMessage(
+            content="",
+            tool_calls=[
+                {
+                    "name": "analyse_postings",
+                    "args": {},
+                    "id": f"call_{self.calls}",
+                    "type": "tool_call",
+                }
+            ],
+        )
+
+
+def test_iteration_cap_terminates_infinite_tool_loop(esco_matcher):
+    """Graph must terminate even when the planner ALWAYS emits a tool call.
+
+    Without the C1 fix the planner-tools loop would run forever (or until
+    LangGraph raises GraphRecursionError). With the fix, route_after_planner
+    redirects to 'reflection' once iterations >= MAX_ITERATIONS, so the graph
+    exits cleanly and final["iterations"] is bounded.
+    """
+    deps = _snapshot_deps(esco_matcher)
+    graph = build_graph(AlwaysToolCallLLM(), deps)
+
+    init = {
+        "messages": [HumanMessage(content="Find my skill gaps for data scientist in London.")],
+        "role": "data scientist",
+        "location": "London",
+        "cv_text": "I have experience with python.",
+        "iterations": 0,
+    }
+
+    try:
+        final = graph.invoke(init)
+    except GraphRecursionError as exc:
+        pytest.fail(f"Graph raised GraphRecursionError — iteration cap is not working: {exc}")
+
+    assert final.get("iterations", 0) <= MAX_ITERATIONS

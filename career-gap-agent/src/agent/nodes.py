@@ -20,7 +20,8 @@ MAX_ITERATIONS = 6
 def is_grounded(report: GapReport, valid_skills: set[str]) -> bool:
     if not report.gaps:
         return True
-    return all(g.demand_count > 0 and g.skill in valid_skills for g in report.gaps)
+    valid_lower = {s.lower() for s in valid_skills}
+    return all(g.demand_count > 0 and g.skill.lower() in valid_lower for g in report.gaps)
 
 
 def planner_node(state: AgentState, llm: Any) -> dict:
