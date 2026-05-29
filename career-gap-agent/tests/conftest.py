@@ -11,3 +11,14 @@ from pathlib import Path
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
+
+import pytest  # noqa: E402
+
+
+@pytest.fixture(scope="module")
+def esco_matcher():
+    """Module-scoped EscoMatcher so the fastembed model loads once per module."""
+    from src.data.esco_loader import EscoIndex
+    from src.skills.esco_matcher import EscoMatcher
+
+    return EscoMatcher(EscoIndex.load())
