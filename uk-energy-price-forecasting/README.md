@@ -19,19 +19,20 @@
 
 ## Hero Results
 
-Real GB system-price data (2024), 31-day rolling-origin backtest, 48-settlement-period horizon. Global LightGBM vs the seasonal-naive baseline:
+Real 2024 GB system-price data, rolling-origin backtest, 48-settlement-period horizon. Every model scored on identical origins (GBP/MWh; lower is better except coverage):
 
-| Metric | Seasonal-naive | Global LightGBM |
-|---|---|---|
-| Pinball loss (lower better) | 21.68 | **11.72** |
-| Skill vs naive (pinball) | — | **+46%** |
-| CRPS | 43.36 | **23.44** |
-| MAE (median forecast) | 43.36 | **37.18** |
-| 80% interval coverage | 0.01¹ | **0.70** |
+| Model | Pinball | Skill vs naive | CRPS | MAE | 80% coverage |
+|---|---|---|---|---|---|
+| Seasonal-naive | 16.94 | — | 33.88 | 33.88 | 0.01¹ |
+| Global LightGBM | 10.11 | +40% | 20.23 | 33.08 | 0.63 |
+| Global TiDE | 11.01 | +35% | 22.01 | 33.97 | 0.56 |
+| **Global TFT** | **7.98** | **+53%** | **15.97** | **25.35** | **0.76** |
+
+The Temporal Fusion Transformer wins on every metric — pinball, CRPS, MAE, and calibration (empirical coverage 0.76 against the 0.80 nominal target). The ordering (naive → boosting/TiDE → TFT) is exactly what the model ladder is built to surface.
 
 ¹ Seasonal-naive is a point forecast (zero interval width), so its probabilistic coverage is ≈0 by construction — a deliberate teaching contrast.
 
-> Numbers are GBP/MWh on the **real 2024 GB imbalance price** (built with `scripts/build_real_panel.py`, no API key). The deep models (TFT/TiDE) and the zero-shot foundation baseline (Chronos/TimesFM) are trained on Colab (`notebooks/03_colab_train_global.ipynb`) and join the ablation table there. The committed synthetic fixture panel reproduces the full pipeline with no data download.
+> Numbers are GBP/MWh on the **real 2024 GB imbalance price** (built with `scripts/build_real_panel.py`, no API key; reproduce with `scripts/run_real_ablation.py`). The zero-shot foundation baseline (Chronos/TimesFM) is an optional extra row produced by the Colab notebook. The committed synthetic fixture panel reproduces the full pipeline with no data download.
 
 ---
 
