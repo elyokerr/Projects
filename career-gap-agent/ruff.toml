@@ -5,4 +5,4 @@ select = ["E", "F", "I", "UP", "B"]
 
 [lint.per-file-ignores]
 # Reference copy-paste snippet for notebooks; intentionally compact.
-"notebooks/_nb_header.py" = ["E401", "E402", "E501"]
+"notebooks/_nb_header.py" = ["E401", "E402", "E501", "I001"]
