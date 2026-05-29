@@ -65,9 +65,11 @@ _RESOLUTION_MAP = {
 # ---------------------------------------------------------------------------
 
 def _cache_path(date_from: date, date_to: date) -> Path:
+    # strftime("%Y-%m-%d") avoids colons (illegal in Windows filenames) that
+    # appear when callers pass a datetime instead of a date.
     return (
         _CACHE_ROOT
-        / f"dayahead_{date_from.isoformat()}_{date_to.isoformat()}.parquet"
+        / f"dayahead_{date_from.strftime('%Y-%m-%d')}_{date_to.strftime('%Y-%m-%d')}.parquet"
     )
 
 

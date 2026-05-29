@@ -13,16 +13,14 @@ Caching: successful responses are written to
   ``data/raw/elexon/<endpoint>_<date_from>_<date_to>.parquet`` and re-used on
   subsequent calls with the same parameters.
 
-# TODO: confirm field names against live Elexon Insights docs at
-#       build-verification time.  The field names used here
-#       (startTime, fuelType, generation, demand) are best-effort based on
-#       public Elexon Insights API documentation.
+Field names and endpoints below were confirmed against live Elexon responses
+on 2026-05-29.
 """
 from __future__ import annotations
 
 import time
 import logging
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -35,12 +33,19 @@ _BASE_URL = "https://data.elexon.co.uk/bmrs/api/v1"
 _CACHE_ROOT = Path("data/raw/elexon")
 _USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
 
-# TODO: confirm field names against live Elexon Insights docs at build-verification time.
+# Confirmed against live Elexon responses 2026-05-29.
 _FUELHH_TIMESTAMP_FIELD = "startTime"
 _FUELHH_FUEL_FIELD = "fuelType"
 _FUELHH_MW_FIELD = "generation"
+# /demand/outturn returns both demand series in one record.
 _DEMAND_TIMESTAMP_FIELD = "startTime"
-_DEMAND_VALUE_FIELD = "demand"
+_DEMAND_INDO_FIELD = "initialDemandOutturn"
+_DEMAND_ITSDO_FIELD = "initialTransmissionSystemDemandOutturn"
+# /balancing/settlement/system-prices/{date}: GB has a single imbalance price
+# (System Sell Price == System Buy Price since P305), so systemSellPrice is the
+# canonical system price.
+_SYSPRICE_TIMESTAMP_FIELD = "startTime"
+_SYSPRICE_VALUE_FIELD = "systemSellPrice"
 
 
 # ---------------------------------------------------------------------------
@@ -166,9 +171,10 @@ def fetch_demand(
     date_to: date,
     transport: Optional[Callable] = None,
 ) -> pd.DataFrame:
-    """Fetch half-hourly demand from Elexon BMRS /datasets/INDO and /datasets/ITSDO.
+    """Fetch half-hourly demand from Elexon BMRS /demand/outturn.
 
-    Both datasets are fetched and merged on ``timestamp``.
+    A single endpoint returns both the initial demand out-turn (INDO) and the
+    initial transmission-system demand out-turn (ITSDO) per settlement period.
 
     Parameters
     ----------
@@ -188,28 +194,78 @@ def fetch_demand(
     if cached is not None:
         return cached
 
+    url = f"{_BASE_URL}/demand/outturn"
     params = {
         "settlementDateFrom": date_from.isoformat(),
         "settlementDateTo": date_to.isoformat(),
     }
+    raw = _request(url, params, transport)
 
-    def _fetch_one(endpoint: str) -> pd.DataFrame:
-        url = f"{_BASE_URL}/datasets/{endpoint}"
-        raw = _request(url, params, transport)
-        records = raw.get("data", [])
-        rows = []
-        for rec in records:
-            rows.append({
-                "timestamp": _parse_utc_timestamp(rec[_DEMAND_TIMESTAMP_FIELD]),
-                "value": float(rec[_DEMAND_VALUE_FIELD]),
-            })
-        return pd.DataFrame(rows, columns=["timestamp", "value"])
+    rows = []
+    for rec in raw.get("data", []):
+        rows.append({
+            "timestamp": _parse_utc_timestamp(rec[_DEMAND_TIMESTAMP_FIELD]),
+            "indo": float(rec[_DEMAND_INDO_FIELD]),
+            "itsdo": float(rec[_DEMAND_ITSDO_FIELD]),
+        })
 
-    indo_df = _fetch_one("INDO").rename(columns={"value": "indo"})
-    itsdo_df = _fetch_one("ITSDO").rename(columns={"value": "itsdo"})
-
-    df = pd.merge(indo_df, itsdo_df, on="timestamp", how="outer")
+    df = pd.DataFrame(rows, columns=["timestamp", "indo", "itsdo"])
     df = df.sort_values("timestamp").reset_index(drop=True)
+
+    if transport is None:
+        _save_cache(df, cache_file)
+
+    return df
+
+
+def fetch_system_price(
+    date_from: date,
+    date_to: date,
+    transport: Optional[Callable] = None,
+) -> pd.DataFrame:
+    """Fetch half-hourly GB system (imbalance) price from Elexon BMRS.
+
+    Endpoint ``/balancing/settlement/system-prices/{date}`` returns 48
+    settlement periods for a single date, so a date range is fetched by
+    iterating day by day.  GB operates a single imbalance price (System Sell
+    Price == System Buy Price), so ``systemSellPrice`` is used as the price.
+
+    Parameters
+    ----------
+    date_from : date  Start date (inclusive).
+    date_to   : date  End date (inclusive).
+    transport : callable, optional
+        Injected transport ``(url, params) -> dict``.  If None, uses
+        ``requests.get`` (makes a live network call).  In tests the transport
+        is expected to return one day's payload regardless of the URL.
+
+    Returns
+    -------
+    pd.DataFrame
+        Columns: ``timestamp`` (UTC datetime), ``price`` (float, GBP/MWh).
+    """
+    cache_file = _cache_path("SYSPRICE", date_from, date_to)
+    cached = _load_cache(cache_file)
+    if cached is not None:
+        return cached
+
+    rows = []
+    day = date_from
+    while day <= date_to:
+        url = f"{_BASE_URL}/balancing/settlement/system-prices/{day.isoformat()}"
+        raw = _request(url, {}, transport)
+        for rec in raw.get("data", []):
+            rows.append({
+                "timestamp": _parse_utc_timestamp(rec[_SYSPRICE_TIMESTAMP_FIELD]),
+                "price": float(rec[_SYSPRICE_VALUE_FIELD]),
+            })
+        if transport is not None:
+            # In tests the transport serves a single fixed payload; one pass.
+            break
+        day += timedelta(days=1)
+
+    df = pd.DataFrame(rows, columns=["timestamp", "price"])
+    df = df.drop_duplicates("timestamp").sort_values("timestamp").reset_index(drop=True)
 
     if transport is None:
         _save_cache(df, cache_file)

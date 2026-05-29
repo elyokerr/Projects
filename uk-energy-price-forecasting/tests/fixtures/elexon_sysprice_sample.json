@@ -4,29 +4,29 @@
       "startTime": "2024-01-15T00:00:00Z",
       "settlementDate": "2024-01-15",
       "settlementPeriod": 1,
-      "initialDemandOutturn": 25000.0,
-      "initialTransmissionSystemDemandOutturn": 24500.0
+      "systemSellPrice": 72.5,
+      "systemBuyPrice": 72.5
     },
     {
       "startTime": "2024-01-15T00:30:00Z",
       "settlementDate": "2024-01-15",
       "settlementPeriod": 2,
-      "initialDemandOutturn": 24800.0,
-      "initialTransmissionSystemDemandOutturn": 24300.0
+      "systemSellPrice": 68.0,
+      "systemBuyPrice": 68.0
     },
     {
       "startTime": "2024-01-15T01:00:00Z",
       "settlementDate": "2024-01-15",
       "settlementPeriod": 3,
-      "initialDemandOutturn": 24500.0,
-      "initialTransmissionSystemDemandOutturn": 24000.0
+      "systemSellPrice": -15.0,
+      "systemBuyPrice": -15.0
     },
     {
       "startTime": "2024-01-15T01:30:00Z",
       "settlementDate": "2024-01-15",
       "settlementPeriod": 4,
-      "initialDemandOutturn": 24200.0,
-      "initialTransmissionSystemDemandOutturn": 23700.0
+      "systemSellPrice": 95.25,
+      "systemBuyPrice": 95.25
     }
   ]
 }

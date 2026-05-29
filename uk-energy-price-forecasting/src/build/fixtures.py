@@ -116,51 +116,58 @@ def _generate_fixture_frame(seed: int = 42) -> pd.DataFrame:
 # Public loader
 # ---------------------------------------------------------------------------
 
-def load_fixture_panel() -> PanelBundle:
-    """Load the committed synthetic fixture parquet and return a PanelBundle.
+def panel_from_wide_frame(df: pd.DataFrame) -> PanelBundle:
+    """Build a PanelBundle from a wide panel frame.
 
-    Reads ``tests/fixtures/fixture_panel.parquet`` (resolved relative to this
-    module, not the working directory) and reconstructs the four inputs that
-    :func:`src.build.panel.build_panel` expects.
+    The frame must have a (UTC) DatetimeIndex and columns ``price``, ``indo``,
+    ``itsdo``, and one or more ``gen_<fuel>`` columns. This is the shared code
+    path used by both the committed fixture panel and any real panel produced by
+    ``scripts/build_real_panel.py``.
 
     Returns
     -------
     PanelBundle
         Ready-to-use bundle with target, past_covariates, future_covariates.
     """
-    df = pd.read_parquet(_PARQUET_PATH)
-
     # Ensure the index is UTC-aware (parquet may drop tz on round-trip).
     if df.index.tz is None:
         df.index = df.index.tz_localize("UTC")
-
     index = df.index
 
-    # -- price_df ----------------------------------------------------------
     price_df = df[["price"]].copy()
-
-    # -- demand_df ---------------------------------------------------------
     demand_df = df[["indo", "itsdo"]].copy()
 
-    # -- fuel_df: melt gen_* wide columns back to tidy format -------------
-    # build_panel pivots on "fuel" column and adds the "gen_" prefix itself,
-    # so we strip the prefix here before melting.
-    fuel_wide = df[["gen_gas", "gen_wind", "gen_nuclear", "gen_biomass", "gen_solar"]].copy()
+    # Melt every gen_* column to tidy form. build_panel pivots on "fuel" and
+    # re-adds the "gen_" prefix, so strip it here before melting.
+    gen_cols = [c for c in df.columns if c.startswith("gen_")]
+    fuel_wide = df[gen_cols].copy()
     fuel_wide.index.name = "timestamp"
-    # Strip gen_ prefix from column names
     fuel_wide.columns = [c.replace("gen_", "", 1) for c in fuel_wide.columns]
-    # Reset index so timestamp becomes a column for melt
-    fuel_wide_reset = fuel_wide.reset_index()
-    fuel_df = fuel_wide_reset.melt(
-        id_vars="timestamp",
-        var_name="fuel",
-        value_name="mw",
+    fuel_df = fuel_wide.reset_index().melt(
+        id_vars="timestamp", var_name="fuel", value_name="mw"
     )
 
-    # -- calendar_df -------------------------------------------------------
     calendar_df = build_calendar(index)
-
     return build_panel(price_df, demand_df, fuel_df, calendar_df)
+
+
+def load_panel_from_parquet(path) -> PanelBundle:
+    """Load a wide panel parquet (e.g. ``data/processed/real_panel.parquet``)."""
+    return panel_from_wide_frame(pd.read_parquet(path))
+
+
+def load_fixture_panel() -> PanelBundle:
+    """Load the committed synthetic fixture parquet and return a PanelBundle.
+
+    Reads ``tests/fixtures/fixture_panel.parquet`` (resolved relative to this
+    module, not the working directory).
+
+    Returns
+    -------
+    PanelBundle
+        Ready-to-use bundle with target, past_covariates, future_covariates.
+    """
+    return load_panel_from_parquet(_PARQUET_PATH)
 
 
 # ---------------------------------------------------------------------------
