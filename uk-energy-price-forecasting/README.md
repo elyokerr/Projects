@@ -19,18 +19,19 @@
 
 ## Hero Results
 
-Rolling-origin backtest, 48-settlement-period horizon. Global LightGBM vs the seasonal-naive baseline:
+Real GB system-price data (2024), 31-day rolling-origin backtest, 48-settlement-period horizon. Global LightGBM vs the seasonal-naive baseline:
 
 | Metric | Seasonal-naive | Global LightGBM |
 |---|---|---|
-| Pinball loss (lower better) | 2.90 | **1.44** |
-| Skill vs naive (pinball) | — | **+50%** |
-| MAE (median forecast) | 5.81 | **3.95** |
-| 80% interval coverage | 0.00¹ | **0.73** |
+| Pinball loss (lower better) | 21.68 | **11.72** |
+| Skill vs naive (pinball) | — | **+46%** |
+| CRPS | 43.36 | **23.44** |
+| MAE (median forecast) | 43.36 | **37.18** |
+| 80% interval coverage | 0.01¹ | **0.70** |
 
-¹ Seasonal-naive is a point forecast (zero interval width), so its probabilistic coverage is zero by construction — a deliberate teaching contrast.
+¹ Seasonal-naive is a point forecast (zero interval width), so its probabilistic coverage is ≈0 by construction — a deliberate teaching contrast.
 
-> **These figures are computed on the committed synthetic fixture panel** so the repo is fully reproducible with no API keys. Headline results on real GB market data are produced by the Colab training run (`notebooks/03_colab_train_global.ipynb`) plus the live-data backtest; the deep models (TFT/TiDE) and the zero-shot foundation baseline (Chronos/TimesFM) join the ablation table there.
+> Numbers are GBP/MWh on the **real 2024 GB imbalance price** (built with `scripts/build_real_panel.py`, no API key). The deep models (TFT/TiDE) and the zero-shot foundation baseline (Chronos/TimesFM) are trained on Colab (`notebooks/03_colab_train_global.ipynb`) and join the ablation table there. The committed synthetic fixture panel reproduces the full pipeline with no data download.
 
 ---
 
