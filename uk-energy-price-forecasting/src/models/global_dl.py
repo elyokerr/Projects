@@ -36,8 +36,24 @@ import warnings
 import numpy as np
 import pandas as pd
 
+from darts.dataprocessing.transformers import Scaler
 from darts.models import TFTModel, TiDEModel
 from darts.utils.likelihood_models import QuantileRegression
+
+
+def _fit_scalers(target, past, future, train_end):
+    """Fit min-max scalers on the TRAINING window only (leakage-safe).
+
+    Neural models (TiDE/TFT) diverge to NaN on raw GB energy data because the
+    series span very different magnitudes (price in tens, demand in tens of
+    thousands). Scaling target + covariates is required. Stats are fit on the
+    pre-``train_end`` slice so no future information leaks into the transform.
+    """
+    sy, sp, sf = Scaler(), Scaler(), Scaler()
+    sy.fit(target if train_end is None else target[:train_end])
+    sp.fit(past if train_end is None else past[:train_end])
+    sf.fit(future if train_end is None else future[:train_end])
+    return sy, sp, sf
 
 # Default tiny config: fast on CPU for smoke tests and local dev.
 _DEFAULT_INPUT_CHUNK = 48
@@ -122,6 +138,10 @@ class GlobalTiDE:
         """
         target = bundle.target if train_end is None else bundle.target[:train_end]
 
+        self._sy, self._sp, self._sf = _fit_scalers(
+            bundle.target, bundle.past_covariates, bundle.future_covariates, train_end
+        )
+
         model_kwargs = {**_TIDE_DEFAULTS, **self.extra_kwargs}
         self.model = TiDEModel(
             input_chunk_length=self.input_chunk_length,
@@ -137,9 +157,9 @@ class GlobalTiDE:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             self.model.fit(
-                target,
-                past_covariates=bundle.past_covariates,
-                future_covariates=bundle.future_covariates,
+                self._sy.transform(target),
+                past_covariates=self._sp.transform(bundle.past_covariates),
+                future_covariates=self._sf.transform(bundle.future_covariates),
             )
 
         return self
@@ -192,11 +212,12 @@ class GlobalTiDE:
             warnings.simplefilter("ignore")
             pred = self.model.predict(
                 n=horizon,
-                series=bundle.target[:origin],
-                past_covariates=bundle.past_covariates,
-                future_covariates=bundle.future_covariates,
+                series=self._sy.transform(bundle.target[:origin]),
+                past_covariates=self._sp.transform(bundle.past_covariates),
+                future_covariates=self._sf.transform(bundle.future_covariates),
                 num_samples=200,
             )
+        pred = self._sy.inverse_transform(pred)
 
         result: dict[float, np.ndarray] = {}
         for q in quantiles:
@@ -280,6 +301,10 @@ class GlobalTFT:
         """
         target = bundle.target if train_end is None else bundle.target[:train_end]
 
+        self._sy, self._sp, self._sf = _fit_scalers(
+            bundle.target, bundle.past_covariates, bundle.future_covariates, train_end
+        )
+
         model_kwargs = {**_TFT_DEFAULTS, **self.extra_kwargs}
         self.model = TFTModel(
             input_chunk_length=self.input_chunk_length,
@@ -295,9 +320,9 @@ class GlobalTFT:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             self.model.fit(
-                target,
-                past_covariates=bundle.past_covariates,
-                future_covariates=bundle.future_covariates,
+                self._sy.transform(target),
+                past_covariates=self._sp.transform(bundle.past_covariates),
+                future_covariates=self._sf.transform(bundle.future_covariates),
             )
 
         return self
@@ -351,11 +376,12 @@ class GlobalTFT:
             warnings.simplefilter("ignore")
             pred = self.model.predict(
                 n=horizon,
-                series=bundle.target[:origin],
-                past_covariates=bundle.past_covariates,
-                future_covariates=bundle.future_covariates,
+                series=self._sy.transform(bundle.target[:origin]),
+                past_covariates=self._sp.transform(bundle.past_covariates),
+                future_covariates=self._sf.transform(bundle.future_covariates),
                 num_samples=200,
             )
+        pred = self._sy.inverse_transform(pred)
 
         result: dict[float, np.ndarray] = {}
         for q in quantiles:

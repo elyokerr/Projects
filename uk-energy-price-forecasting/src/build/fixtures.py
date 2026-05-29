@@ -132,6 +132,17 @@ def panel_from_wide_frame(df: pd.DataFrame) -> PanelBundle:
     # Ensure the index is UTC-aware (parquet may drop tz on round-trip).
     if df.index.tz is None:
         df.index = df.index.tz_localize("UTC")
+    df = df.sort_index()
+
+    # Fill NaNs so neural models don't diverge (LightGBM tolerates NaN, TiDE/TFT
+    # do not). A gen_* column that is missing means that source was not running
+    # / not yet commissioned (e.g. a new interconnector), so its generation was
+    # genuinely zero. Price and demand gaps are bridged by interpolation.
+    gen_cols = [c for c in df.columns if c.startswith("gen_")]
+    df[gen_cols] = df[gen_cols].fillna(0.0)
+    other_cols = [c for c in df.columns if c not in gen_cols]
+    df[other_cols] = df[other_cols].interpolate(limit_direction="both")
+
     index = df.index
 
     price_df = df[["price"]].copy()
