@@ -1,4 +1,4 @@
-# AI Career Gap Analyst — Design
+# AI Career Gap Analyst: Design
 
 An agent that turns live UK job postings into a personalised, evidence-backed skills-gap plan.
 
@@ -16,7 +16,7 @@ The repository runs end-to-end with no secrets against a committed snapshot of p
 
 ## 2. Problem Statement
 
-A job-seeker targeting a role such as "Data Scientist, London" faces dozens of postings whose skill requirements overlap but are described inconsistently ("PyTorch", "torch", "deep learning"). Reading them manually to answer two questions — *what is actually in demand for this role?* and *what am I missing?* — is slow, subjective, and hard to keep current as the market moves.
+A job-seeker targeting a role such as "Data Scientist, London" faces dozens of postings whose skill requirements overlap but are described inconsistently ("PyTorch", "torch", "deep learning"). Reading them manually to answer two questions, *what is actually in demand for this role?* and *what am I missing?*, is slow, subjective, and hard to keep current as the market moves.
 
 The Career Gap Analyst automates that research. It grounds its answer in real, current postings rather than generic advice, normalises inconsistent skill language to a standard taxonomy so demand can be counted reliably, and produces an output that is both ranked (most in-demand gaps first) and evidence-backed (each gap cites posting counts).
 
@@ -35,7 +35,7 @@ Out of scope: automated job applications, CV rewriting, and any retrieval from s
 
 **Adzuna API (job postings).** Live UK postings for a `(role, location)` query, returning title, company, description, salary where present, and location. Access uses a free `app_id` and `app_key`. A committed JSON **snapshot** of one frozen pull (roughly 50–100 postings across a few demo roles) lets the test suite, CI, and the public demo run without any key.
 
-**ESCO taxonomy (skills).** The European Skills, Competences, Qualifications and Occupations classification — a free, downloadable CSV of approximately 13,900 skills, applicable to the UK/EU labour market. It is committed in processed form as a parquet file plus a precomputed skill-embedding index, so the repository needs no live download to run. (O\*NET is the United States analogue and is not used here.)
+**ESCO taxonomy (skills).** The European Skills, Competences, Qualifications and Occupations classification, a free, downloadable CSV of approximately 13,900 skills, applicable to the UK/EU labour market. It is committed in processed form as a parquet file plus a precomputed skill-embedding index, so the repository needs no live download to run. (O\*NET is the United States analogue and is not used here.)
 
 **CV.** Supplied at request time as pasted text or an uploaded PDF; PDF text is extracted with PyMuPDF. CV content is not stored.
 
