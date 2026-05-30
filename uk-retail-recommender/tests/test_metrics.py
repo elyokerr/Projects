@@ -1,5 +1,6 @@
 import numpy as np
-from src.eval.metrics import recall_at_k, ndcg_at_k, average_precision_at_k
+
+from src.eval.metrics import average_precision_at_k, ndcg_at_k, recall_at_k
 
 
 def test_recall_at_k():
