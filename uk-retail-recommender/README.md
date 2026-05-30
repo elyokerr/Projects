@@ -110,8 +110,8 @@ uk-retail-recommender/
 │   └── pipeline.py             RecommenderPipeline: train + recommend
 ├── notebooks/                  01 EDA · 02 retrieval · 03 two-tower (Colab) · 04 ranking + eval
 ├── scripts/                    download_data.py · build_sample.py · train_all.py
-├── data/fixtures/              committed sample (in tests/fixtures)
-├── tests/                      unit + API + a RUN_SLOW end-to-end ladder eval
+├── data/                       data/README.md (download steps); raw/ gitignored
+├── tests/                      unit + API tests; fixtures/ holds the committed sample; RUN_SLOW ladder eval
 ├── Dockerfile · docker-compose.yml · requirements.txt
 └── docs/                       design doc
 ```
