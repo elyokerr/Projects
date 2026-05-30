@@ -47,7 +47,7 @@ class TwoTowerModel:
         self.inter: Interactions | None = None
         self.loss_history_: list[float] = []
 
-    def fit(self, inter: Interactions) -> "TwoTowerModel":
+    def fit(self, inter: Interactions) -> TwoTowerModel:
         torch.manual_seed(self.seed)
         np.random.seed(self.seed)
         rng = np.random.default_rng(self.seed)

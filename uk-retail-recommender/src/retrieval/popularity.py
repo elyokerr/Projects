@@ -9,7 +9,7 @@ class PopularityModel:
     def __init__(self) -> None:
         self._scores: list[tuple[str, float]] = []
 
-    def fit(self, df: pd.DataFrame) -> "PopularityModel":
+    def fit(self, df: pd.DataFrame) -> PopularityModel:
         counts = df.groupby("item_id")["customer_id"].nunique()
         ranked = counts.sort_values(ascending=False)
         self._scores = [(str(item), float(score)) for item, score in ranked.items()]

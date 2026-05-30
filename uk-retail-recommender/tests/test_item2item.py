@@ -6,7 +6,8 @@ from src.retrieval.item2item import ItemToItem
 def test_co_purchase_within_invoice():
     df = pd.DataFrame({"customer_id":[1,1,2], "item_id":["a","b","a"],
                        "invoice":["i1","i1","i2"], "quantity":[1,1,1],
-                       "date":pd.to_datetime(["2010-01-01"]*3), "price":[1.0]*3, "country":["UK"]*3})
+                       "date":pd.to_datetime(["2010-01-01"]*3),
+                       "price":[1.0]*3, "country":["UK"]*3})
     m = ItemToItem().fit(df)
     # a and b co-occur in invoice i1
     sim = dict(m.similar("a", k=5))
@@ -16,7 +17,8 @@ def test_co_purchase_within_invoice():
 def test_recommend_from_history_excludes_owned():
     df = pd.DataFrame({"customer_id":[1,1,1], "item_id":["a","b","c"],
                        "invoice":["i1","i1","i1"], "quantity":[1,1,1],
-                       "date":pd.to_datetime(["2010-01-01"]*3), "price":[1.0]*3, "country":["UK"]*3})
+                       "date":pd.to_datetime(["2010-01-01"]*3),
+                       "price":[1.0]*3, "country":["UK"]*3})
     m = ItemToItem().fit(df)
     recs = dict(m.recommend(["a"], k=5))
     assert "a" not in recs  # already owned excluded
@@ -27,7 +29,8 @@ def test_recommend_from_history_excludes_owned():
 def test_recommend_can_keep_owned():
     df = pd.DataFrame({"customer_id":[1,1,1], "item_id":["a","b","c"],
                        "invoice":["i1","i1","i1"], "quantity":[1,1,1],
-                       "date":pd.to_datetime(["2010-01-01"]*3), "price":[1.0]*3, "country":["UK"]*3})
+                       "date":pd.to_datetime(["2010-01-01"]*3),
+                       "price":[1.0]*3, "country":["UK"]*3})
     m = ItemToItem().fit(df)
     recs = dict(m.recommend(["a"], k=5, exclude_owned=False))
     # a is its own neighbour aggregation source; with owned kept it can appear

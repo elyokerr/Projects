@@ -28,7 +28,7 @@ class ALSModel:
         )
         self.inter: Interactions | None = None
 
-    def fit(self, inter: Interactions) -> "ALSModel":
+    def fit(self, inter: Interactions) -> ALSModel:
         # implicit >=0.5 expects user_items (users as rows) for .fit
         self._m.fit(inter.matrix, show_progress=False)
         self.inter = inter
@@ -51,4 +51,7 @@ class ALSModel:
             N=k,
             filter_already_liked_items=filter_owned,
         )
-        return [(self.inter.item_ids[int(i)], float(s)) for i, s in zip(ids, scores)]
+        return [
+            (self.inter.item_ids[int(i)], float(s))
+            for i, s in zip(ids, scores, strict=False)
+        ]

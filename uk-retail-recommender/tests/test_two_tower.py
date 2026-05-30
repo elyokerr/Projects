@@ -5,9 +5,15 @@ from src.data.interactions import build_interactions
 from src.retrieval.two_tower import TwoTowerModel
 
 
+def _inter():
+    df = pd.DataFrame({
+        "customer_id":[1,1,2,2,3], "item_id":["a","b","a","b","c"], "quantity":[1]*5,
+    })
+    return build_interactions(df)
+
+
 def test_two_tower_trains_and_embeds():
-    df = pd.DataFrame({"customer_id":[1,1,2,2,3], "item_id":["a","b","a","b","c"], "quantity":[1]*5})
-    inter = build_interactions(df)
+    inter = _inter()
     m = TwoTowerModel(dim=8, epochs=3, seed=0).fit(inter)
     item_emb = m.item_embeddings()
     assert item_emb.shape == (len(inter.item_ids), 8)
@@ -18,15 +24,13 @@ def test_two_tower_trains_and_embeds():
 
 
 def test_two_tower_is_deterministic():
-    df = pd.DataFrame({"customer_id":[1,1,2,2,3], "item_id":["a","b","a","b","c"], "quantity":[1]*5})
-    inter = build_interactions(df)
+    inter = _inter()
     a = TwoTowerModel(dim=8, epochs=3, seed=0).fit(inter).item_embeddings()
     b = TwoTowerModel(dim=8, epochs=3, seed=0).fit(inter).item_embeddings()
     assert np.allclose(a, b)
 
 
 def test_two_tower_loss_decreases():
-    df = pd.DataFrame({"customer_id":[1,1,2,2,3], "item_id":["a","b","a","b","c"], "quantity":[1]*5})
-    inter = build_interactions(df)
+    inter = _inter()
     m = TwoTowerModel(dim=8, epochs=15, seed=0).fit(inter)
     assert m.loss_history_[-1] < m.loss_history_[0]

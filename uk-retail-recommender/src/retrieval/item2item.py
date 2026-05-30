@@ -19,7 +19,7 @@ class ItemToItem:
     def __init__(self) -> None:
         self._neighbours: dict[str, list[tuple[str, float]]] = {}
 
-    def fit(self, df: pd.DataFrame) -> "ItemToItem":
+    def fit(self, df: pd.DataFrame) -> ItemToItem:
         item_freq: Counter[str] = Counter()
         pair_counts: Counter[tuple[str, str]] = Counter()
         for _, basket in df.groupby("invoice"):
