@@ -1,20 +1,29 @@
 # Data
 
-The contents of `raw/`, `interim/`, `processed/`, and `external/` are gitignored by the repo-wide `.gitignore`. The folder structure is committed (via `.gitkeep` files) but the data files themselves are not.
+This project commits a small sample so it clones, tests, and runs the full evaluation with no download. Working data (`raw/`, `processed/`) is gitignored.
 
-## Where to put what
+## Committed sample
 
-| Folder | Use for |
-|---|---|
-| `raw/` | The original, immutable input data. Never edit these files. |
-| `interim/` | Intermediate transformations — outputs of cleaning, joins, reshaping. |
-| `processed/` | Final, model-ready feature sets. |
-| `external/` | Third-party data (reference tables, public datasets, lookup files). |
+`tests/fixtures/sample_transactions.parquet` holds cleaned transactions with latent customer-cluster structure, built by `scripts/build_sample.py`. It is synthetic when the full dataset is absent, so the model ladder shows real collaborative signal (item-to-item and ALS beat popularity) without needing the download.
 
-## How to get the data
+## Online Retail II (the full dataset)
 
-Document here where the dataset comes from — a download link, a Kaggle URL, an internal source, etc. Anyone cloning the repo should be able to recreate the `raw/` files from this README.
+The real data is the Online Retail II dataset from the UCI Machine Learning Repository: about 1.07 million transaction rows for a real UK-based online retailer between December 2009 and December 2011.
 
-Example:
+- Source: <https://archive.ics.uci.edu/dataset/502/online+retail+ii>
+- Download and cache it as parquet:
+  ```bash
+  python scripts/download_data.py
+  ```
+  This writes `data/raw/online_retail_II.parquet`.
+- Rebuild the committed sample from the real data (top customers):
+  ```bash
+  python scripts/build_sample.py
+  ```
+  Without the raw parquet present, this regenerates the synthetic structured sample instead.
+- Train the full pipeline and write artifacts to `models/`:
+  ```bash
+  python scripts/train_all.py
+  ```
 
-> The raw data is the [Telco Customer Churn](https://www.kaggle.com/datasets/blastchar/telco-customer-churn) dataset from Kaggle. Download `WA_Fn-UseC_-Telco-Customer-Churn.csv` and place it in `data/raw/`.
+The data is used under the UCI Machine Learning Repository terms.

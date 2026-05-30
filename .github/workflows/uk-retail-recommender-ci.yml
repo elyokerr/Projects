@@ -1,0 +1,30 @@
+name: uk-retail-recommender CI
+
+on:
+  push:
+    branches: [main, "uk-retail-recommender/**"]
+    paths:
+      - "uk-retail-recommender/**"
+      - ".github/workflows/uk-retail-recommender-ci.yml"
+  pull_request:
+    paths:
+      - "uk-retail-recommender/**"
+      - ".github/workflows/uk-retail-recommender-ci.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: uk-retail-recommender
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Lint
+        run: ruff check src tests app
+      - name: Test
+        run: pytest tests -v
