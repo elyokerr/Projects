@@ -1,0 +1,19 @@
+/* htmx-indicator: hidden by default, visible while request is in flight */
+.htmx-indicator {
+  display: none;
+}
+
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+  display: flex;
+}
+
+/* Smooth fade-in for HTMX-swapped content */
+#results > * {
+  animation: fadein 0.2s ease-in;
+}
+
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

@@ -1,0 +1,59 @@
+{% if error %}
+<div class="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+  <strong>Error:</strong> {{ error }}
+</div>
+{% elif not recs %}
+<div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-sm text-yellow-800">
+  No recommendations found for this customer.
+</div>
+{% else %}
+
+{% if is_cold %}
+<div class="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-700">
+  Cold start (popular items) &mdash; this customer ID was not seen during training.
+</div>
+{% endif %}
+
+<div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+  <div class="px-6 py-4 border-b border-gray-100">
+    <h2 class="text-base font-semibold text-gray-900">
+      Recommendations
+      <span class="ml-2 text-xs font-normal text-gray-400">({{ recs|length }} items)</span>
+    </h2>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 text-gray-500 uppercase text-xs tracking-wide">
+        <tr>
+          <th class="px-4 py-3 text-left">Rank</th>
+          <th class="px-4 py-3 text-left">Item ID</th>
+          <th class="px-4 py-3 text-right">Score</th>
+          <th class="px-4 py-3 text-center">Source</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for rec in recs %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-4 py-3 text-gray-400 font-mono">{{ loop.index }}</td>
+          <td class="px-4 py-3 text-gray-800 font-medium font-mono">{{ rec.item_id }}</td>
+          <td class="px-4 py-3 text-right text-gray-600 font-mono">{{ "%.4f"|format(rec.score) }}</td>
+          <td class="px-4 py-3 text-center">
+            {% if rec.source == "cold_start" %}
+              <span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">cold_start</span>
+            {% elif rec.source == "als" %}
+              <span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">als</span>
+            {% elif rec.source == "i2i" %}
+              <span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">i2i</span>
+            {% elif rec.source == "pop" %}
+              <span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">pop</span>
+            {% else %}
+              <span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">{{ rec.source }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
