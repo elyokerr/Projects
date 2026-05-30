@@ -6,7 +6,6 @@ data/raw/
 data/processed/
 data/interim/
 data/vector/
-models/
 mlruns/
 
 # Env, caches, venv
@@ -26,3 +25,14 @@ __pycache__/
 # Stray notebook outputs (notebooks should chdir to project root via _nb_header.py;
 # if they don't, they sometimes write data here by accident — ignore preemptively)
 notebooks/data/
+
+# Model artifacts and raw data (fixtures excepted)
+data/raw/
+data/processed/
+models/*.pkl
+models/*.npy
+models/*.faiss
+models/*.txt
+!models/sample/**
+*.xlsx
+!tests/fixtures/*.xlsx
