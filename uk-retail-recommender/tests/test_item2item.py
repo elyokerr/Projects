@@ -33,5 +33,5 @@ def test_recommend_can_keep_owned():
                        "price":[1.0]*3, "country":["UK"]*3})
     m = ItemToItem().fit(df)
     recs = dict(m.recommend(["a"], k=5, exclude_owned=False))
-    # a is its own neighbour aggregation source; with owned kept it can appear
+    # "a" does not reappear because items are not their own co-purchase neighbours
     assert "b" in recs

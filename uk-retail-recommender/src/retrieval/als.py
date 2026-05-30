@@ -45,13 +45,26 @@ class ALSModel:
     def recommend(self, user_id: int, k: int = 50, filter_owned: bool = True):
         assert self.inter is not None, "call fit() before recommend()"
         uidx = self.inter.user_index[user_id]
+        # Cap N at the number of items so implicit 0.7.3 does not pad results
+        # with sentinel scores (-FLT_MAX) and repeated indices.
+        n = min(k, self.inter.matrix.shape[1])
         ids, scores = self._m.recommend(
             uidx,
             self.inter.matrix[uidx],
-            N=k,
+            N=n,
             filter_already_liked_items=filter_owned,
         )
-        return [
-            (self.inter.item_ids[int(i)], float(s))
-            for i, s in zip(ids, scores, strict=False)
-        ]
+        _SENTINEL = -3.0e38
+        seen: set[str] = set()
+        result: list[tuple[str, float]] = []
+        for i, s in zip(ids, scores, strict=False):
+            # Drop sentinel padding rows injected when N > available items.
+            if float(s) <= _SENTINEL:
+                continue
+            item_id = self.inter.item_ids[int(i)]
+            # Dedup by item_id, keeping first (highest-ranked) occurrence.
+            if item_id in seen:
+                continue
+            seen.add(item_id)
+            result.append((item_id, float(s)))
+        return result

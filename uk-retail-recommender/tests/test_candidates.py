@@ -1,4 +1,11 @@
+import pytest
+
 from src.retrieval.candidates import union_candidates
+
+
+def test_union_rejects_unknown_source_name():
+    with pytest.raises(ValueError, match="Unknown candidate source: bogus"):
+        union_candidates({"bogus": [("z", 1.0)]})
 
 
 def test_union_dedups_and_keeps_per_source_scores():
