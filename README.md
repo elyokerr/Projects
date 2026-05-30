@@ -116,6 +116,24 @@ A tool-using AI agent that turns live UK job postings into a personalised, evide
 
 ---
 
+### [`uk-retail-recommender/`](uk-retail-recommender/) - UK Retail Recommender
+
+A two-stage personalised product recommender on real UK e-commerce data (Online Retail II). Multi-source retrieval (popularity, item-to-item co-purchase, **ALS matrix factorisation + FAISS**, and a neural **two-tower** model) feeds a **LightGBM LambdaMART** ranker, evaluated on a temporal split and served through a mobile-friendly FastAPI demo.
+
+| Highlight | Value |
+|---|---|
+| Two-stage skill | Candidate retrieval (4 sources) + learning-to-rank reranker |
+| Recall@10 (model ladder) | popularity 0.08 · item-to-item 0.42 · ALS 0.22 · **two-stage 0.58** |
+| Ranker quality | recovers **~96%** of the retrieval recall ceiling (0.60) |
+| Evaluation | temporal split · recall@k / NDCG@k / MAP@k · retrieval-ceiling diagnostic |
+| Reproducibility | full ladder runs with **zero download** on a committed sample (39 tests, lint clean) |
+
+**Stack:** Python 3.11 · pandas · `implicit` (ALS) · FAISS · LightGBM (LambdaMART) · PyTorch (two-tower) · FastAPI · HTMX · Tailwind · Docker · GitHub Actions · Hugging Face Spaces
+
+--> [Open project](uk-retail-recommender/)
+
+---
+
 ## How this repo is organised
 
 ```
@@ -132,7 +150,8 @@ Projects/
 ├── uk-housing-mds/
 ├── ab-experiment-platform/
 ├── uk-energy-price-forecasting/
-└── career-gap-agent/
+├── career-gap-agent/
+└── uk-retail-recommender/
 ```
 
 Every project folder uses the same internal layout:
