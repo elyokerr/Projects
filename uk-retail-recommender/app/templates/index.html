@@ -37,11 +37,14 @@
             id="customer_id"
             name="customer_id"
             type="number"
-            placeholder="e.g. 12345"
+            placeholder="e.g. 1016"
             class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
           <p class="mt-1 text-xs text-gray-400">
-            Tip: use a known customer from the dataset. Unknown IDs return popular items (cold start).
+            Try <button type="button" onclick="document.getElementById('customer_id').value=1016" class="text-indigo-600 underline">1016</button>,
+            <button type="button" onclick="document.getElementById('customer_id').value=1011" class="text-indigo-600 underline">1011</button>, or
+            <button type="button" onclick="document.getElementById('customer_id').value=1074" class="text-indigo-600 underline">1074</button>
+            (valid IDs are 1000 to 1119). An unknown ID like 9999 returns popular items (cold start).
           </p>
         </div>
 

@@ -224,12 +224,31 @@ class RecommenderPipeline:
         )
         scores = self.ranker.predict(X[FEATURE_COLUMNS])
 
+        # Per-source max over the candidate pool, so attribution compares each
+        # source on its own scale (popularity counts dwarf ALS/cosine scores
+        # otherwise, and every item would be tagged "pop").
+        source_max = {
+            name: max((c.get(name, 0.0) for c in cands), default=0.0)
+            for name in SOURCE_NAMES
+        }
+
+        def _dominant_source(cand: dict) -> str:
+            best_name, best_norm = "pop", -1.0
+            for name in SOURCE_NAMES:
+                raw = cand.get(name, 0.0)
+                if raw <= 0.0:
+                    continue
+                norm = raw / source_max[name] if source_max[name] > 0 else 0.0
+                if norm > best_norm:
+                    best_name, best_norm = name, norm
+            return best_name
+
         ranked: list[dict] = []
         for cand, rank_score in zip(cands, scores, strict=True):
             item_id = cand["item_id"]
             if item_id in owned:  # double-check: never recommend an owned item
                 continue
-            dominant = max(SOURCE_NAMES, key=lambda name: cand.get(name, 0.0))
+            dominant = _dominant_source(cand)
             ranked.append(
                 {
                     "item_id": item_id,

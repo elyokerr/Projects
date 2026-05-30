@@ -80,6 +80,42 @@ docker compose up --build
 
 ---
 
+## Examples to try
+
+The committed sample has **120 customers (IDs 1000 to 1119)** and **80 products (SKU000 to SKU079)**. Everything below works out of the box with no download.
+
+**Personalised recommendations** (enter a customer ID in the web form, or call the API). These customers have the most history, so the recommendations are the most personalised:
+
+| Customer ID | Try it (API) |
+|---|---|
+| 1016 | `curl "http://localhost:8000/recommend?customer_id=1016&k=5"` |
+| 1011 | `curl "http://localhost:8000/recommend?customer_id=1011&k=5"` |
+| 1074 | `curl "http://localhost:8000/recommend?customer_id=1074&k=5"` |
+| 1019, 1013 | any ID from 1000 to 1119 works |
+
+Each result shows the predicted score and a **source badge** telling you which retriever surfaced it: `als` (matrix factorisation), `i2i` (item-to-item co-purchase), or `pop` (popularity).
+
+**Cold start** (a customer ID the model has never seen returns popular items, flagged as a cold start):
+
+```bash
+curl "http://localhost:8000/recommend?customer_id=9999&k=5"
+```
+
+**Similar products** (frequently bought together, no customer needed):
+
+```bash
+curl "http://localhost:8000/similar?item_id=SKU000&k=5"
+curl "http://localhost:8000/similar?item_id=SKU015&k=5"
+```
+
+To list valid IDs yourself:
+
+```bash
+python -c "import pandas as pd; d=pd.read_parquet('tests/fixtures/sample_transactions.parquet'); print('customers', sorted(d.customer_id.unique())[:10], '...'); print('items', sorted(d.item_id.unique())[:10], '...')"
+```
+
+---
+
 ## Project structure
 
 ```
