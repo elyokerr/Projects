@@ -1,4 +1,5 @@
 import pandas as pd
+
 from src.data.clean import clean_transactions
 
 
@@ -21,4 +22,5 @@ def test_drops_cancellation_nonpositive_and_null_customer():
     assert len(out) == 2
     assert set(out["item_id"]) == {"85123A", "21730"}
     assert out["customer_id"].dtype.kind in ("i", "u")
-    assert list(out.columns) >= ["customer_id", "item_id", "invoice", "date", "quantity", "price", "country"]
+    expected_cols = ["customer_id", "item_id", "invoice", "date", "quantity", "price", "country"]
+    assert list(out.columns) >= expected_cols

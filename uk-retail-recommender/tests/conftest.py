@@ -11,3 +11,12 @@ from pathlib import Path
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
+
+import pandas as pd  # noqa: E402
+import pytest  # noqa: E402
+
+
+@pytest.fixture(scope="session")
+def sample_df():
+    fixture = Path(__file__).resolve().parent / "fixtures" / "sample_transactions.parquet"
+    return pd.read_parquet(fixture)

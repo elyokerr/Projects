@@ -22,6 +22,5 @@ def clean_transactions(df: pd.DataFrame) -> pd.DataFrame:
     df["customer_id"] = df["customer_id"].astype(int)
     df["item_id"] = df["item_id"].astype(str)
     df["date"] = pd.to_datetime(df["date"])
-    return df[["customer_id", "item_id", "invoice", "date", "quantity", "price", "country"]].reset_index(
-        drop=True
-    )
+    cols = ["customer_id", "item_id", "invoice", "date", "quantity", "price", "country"]
+    return df[cols].reset_index(drop=True)
