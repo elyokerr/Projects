@@ -1,7 +1,0 @@
-services:
-  app:
-    build: .
-    ports:
-      - "7860:7860"
-    # No secrets are required. The app trains on the committed sample fixture at
-    # first request; mount a pre-built models/ directory for the full-data pipeline.
